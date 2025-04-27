@@ -1,0 +1,11 @@
+# Initialize the registers
+R1 = 0
+R2 = 1
+clear R3
+
+# Start the loop
+@loop
+R3 = R1 + $2
+R1 = R2 # This is a comment
+R2 = R3
+jump @loop
