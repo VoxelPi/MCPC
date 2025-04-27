@@ -2,10 +2,14 @@
 R1 = 0
 R2 = 1
 clear R3
+R4 = 0
+R5 = 0
+R6 = 0
+R7 = 0
 
 # Start the loop
 @loop
-R3 = R1 + $2
+R3 = R1 + R2
 R1 = R2 # This is a comment
 R2 = R3
 jump @loop
