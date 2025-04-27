@@ -10,6 +10,32 @@ R5 = 19
 R6 = 42
 R7 = 9
 
+clear R3
+fill R3
+R3 = inc R3
+R3 = dec R3
+R3 = not R4
+R3 = shift right R4
+R3 = shift left R4
+R3 = rotate right R4
+R3 = rotate left R4
+
+#R3 = true
+#R3 = false
+R3 = check R4 = 0
+R3 = check R4 != 0
+R3 = check R4 > 0
+R3 = check RC < 0
+R3 = check R4 >= 0
+R3 = check R4 <= 0
+
+[R3] = R4
+R5 = [R3]
+
+poll RC
+read R4
+write R4
+
 @loop
 R1 += 1
 jump @loop
