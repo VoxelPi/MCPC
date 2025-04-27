@@ -22,7 +22,7 @@ R3 = rotate left R4
 
 #R3 = true
 #R3 = false
-R3 = check R4 = 0
+R3 = check R4 = false
 R3 = check R4 != 0
 R3 = check R4 > 0
 R3 = check RC < 0
