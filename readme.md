@@ -83,8 +83,8 @@ Instruction|Description
 #### IO
 Instruction|Description
 ---|---
-`poll <r>`|Checks if input is available. If input is available `1` is written to `r`,<br> else `0` is written to `r`.
-`read <r>`|Reads a value from the input and stores the value in `r`. <br>If no input is available, this blocks until input is available.
+`<r> = poll`|Checks if input is available. If input is available `1` is written to `r`,<br> else `0` is written to `r`.
+`<r> = read`|Reads a value from the input and stores the value in `r`. <br>If no input is available, this blocks until input is available.
 `write <r>`|Writes the value of `r` to the output.
 
 #### Other

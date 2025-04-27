@@ -32,8 +32,9 @@ R3 = check R4 <= 0
 [R3] = R4
 R5 = [R3]
 
-poll RC
-read R4
+RC = poll
+# skip -1 if RC = 0
+R4 = read 
 write R4
 
 @loop
