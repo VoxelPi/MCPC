@@ -1,4 +1,6 @@
-# Utilities for the MCPC
+# MCPC
+
+This repository contains utilities for the MCPC, minecraft redstone computer.
 
 ## Assembler
 
