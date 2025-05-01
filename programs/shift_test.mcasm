@@ -1,0 +1,39 @@
+R1 = 0b11010001
+
+R1 = rotate left R1
+R1 = rotate left R1
+R1 = rotate left R1
+R1 = rotate left R1
+R1 = rotate left R1
+R1 = rotate left R1
+R1 = rotate left R1
+
+R1 = 0b11010001
+
+R1 = rotate right R1
+R1 = rotate right R1
+R1 = rotate right R1
+R1 = rotate right R1
+R1 = rotate right R1
+R1 = rotate right R1
+R1 = rotate right R1
+
+R1 = 0b11010001
+
+R1 = shift left R1
+R1 = shift left R1
+R1 = shift left R1
+R1 = shift left R1
+R1 = shift left R1
+R1 = shift left R1
+R1 = shift left R1
+
+R1 = 0b11010001
+
+R1 = shift right R1
+R1 = shift right R1
+R1 = shift right R1
+R1 = shift right R1
+R1 = shift right R1
+R1 = shift right R1
+R1 = shift right R1

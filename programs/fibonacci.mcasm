@@ -1,11 +1,6 @@
 # Initialize the registers
 R1 = 0
 R2 = 1
-clear R3
-R4 = 0
-R5 = 0
-R6 = 0
-R7 = 0
 
 # Start the loop
 @loop
