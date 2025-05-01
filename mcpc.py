@@ -41,10 +41,10 @@ class Operation(Enum):
     CHECK_NEVER = 17
     CHECK_EQUAL = 18
     CHECK_NOT_EQUAL = 19
-    CHECK_GREATER = 20
-    CHECK_LESS = 21
-    CHECK_GREATER_OR_EQUAL = 22
-    CHECK_GREATER_OR_LESS = 23
+    CHECK_LESS = 20
+    CHECK_GREATER_OR_EQUAL = 21
+    CHECK_GREATER = 22
+    CHECK_LESS_OR_EQUAL = 23
 
     MEMORY_LOAD = 25
     MEMORY_STORE = 26
@@ -66,8 +66,8 @@ class Condition(Enum):
 def operation_check(condition: Condition) -> Operation:
     return list(Operation)[Operation.CHECK_ALWAYS.value + condition.value]
 
-def opcode_load_instruction(relative: bool, condition: Condition, output_register: Register, value: int) -> np.uint16:
-    return np.uint16(InstructionType.LOAD.value | ((1 if relative else 0) << 14) | (condition.value << 11) | (output_register.value << 8) | (value & 0xFF))
+def opcode_load_instruction(relative: bool, condition: Condition, output_reg: Register, value: int) -> np.uint16:
+    return np.uint16(InstructionType.LOAD.value | (output_reg.value << 12) | (condition.value << 9) | ((1 if relative else 0) << 8) | (value & 0xFF))
 
 def opcode_exec_instruction(input_a_reg: Register, input_b_reg: Register, output_reg: Register, operation: Operation) -> np.uint16:
-    return np.uint16(InstructionType.EXEC.value | operation.value | (input_a_reg.value << 6) | (input_b_reg.value << 9) | (output_reg.value << 12))
+    return np.uint16(InstructionType.EXEC.value | (output_reg.value << 12) | (input_b_reg.value << 9) | (input_a_reg.value << 6) | operation.value)
