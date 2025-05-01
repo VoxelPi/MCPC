@@ -242,6 +242,16 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                     instructions[i_instruction] = opcode_load_instruction(False, condition, output_register, value)
                     continue
 
+                # BIT GET
+                if n_instruction_parts == 5 and is_register_id(instruction_parts[2]) and instruction_parts[3] == "bit":
+                    input_register = parse_register(instruction_parts[2])
+                    value = int_or_none(instruction_parts[4])
+                    if value < 0 or value > 7:
+                        raise Exception(f"Failed to parse line {i_src_line}: Invalid bit index {value}")
+                    
+                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, list(Operation)[Operation.BIT_GET_0.value + value])
+                    continue
+
                 # NOT
                 if n_instruction_parts == 4 and instruction_parts[2] == "not" and is_register_id(instruction_parts[3]):
                     input_register = parse_register(instruction_parts[3])
@@ -312,6 +322,17 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                     continue
 
                 raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for assignment: '{src_line}'")
+
+            # BIT SET
+            if n_instruction_parts == 5 and is_register_id(instruction_parts[0]) and instruction_parts[1] == "bit" and instruction_parts[3] == "=" and is_register_id(instruction_parts[4]):
+                output_register = parse_register(instruction_parts[0])
+                input_register = parse_register(instruction_parts[4])
+                value = int_or_none(instruction_parts[2])
+                if value < 0 or value > 7:
+                    raise Exception(f"Failed to parse line {i_src_line}: Invalid bit index {value}")
+                
+                instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, list(Operation)[Operation.BIT_SET_0.value + value])
+                continue
 
             # STORE
             if n_instruction_parts == 3 and instruction_parts[0][0] == "[" and instruction_parts[0][-1] == "]" and instruction_parts[1] == "=":

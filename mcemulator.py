@@ -98,6 +98,40 @@ class Emulator:
             case Operation.CHECK_LESS_OR_EQUAL:
                 return self.evaluate_condition(Condition.LESS_OR_EQUAL, a)
             
+            case Operation.BIT_GET_0:
+                return (a >> 0) & 0b1
+            case Operation.BIT_GET_1:
+                return (a >> 1) & 0b1
+            case Operation.BIT_GET_2:
+                return (a >> 2) & 0b1
+            case Operation.BIT_GET_3:
+                return (a >> 3) & 0b1
+            case Operation.BIT_GET_4:
+                return (a >> 4) & 0b1
+            case Operation.BIT_GET_5:
+                return (a >> 5) & 0b1
+            case Operation.BIT_GET_6:
+                return (a >> 6) & 0b1
+            case Operation.BIT_GET_7:
+                return (a >> 7) & 0b1
+            
+            case Operation.BIT_SET_0:
+                return (b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 0)
+            case Operation.BIT_SET_1:
+                return (b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 1)
+            case Operation.BIT_SET_2:
+                return (b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 2)
+            case Operation.BIT_SET_3:
+                return (b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 3)
+            case Operation.BIT_SET_4:
+                return (b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 4)
+            case Operation.BIT_SET_5:
+                return (b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 5)
+            case Operation.BIT_SET_6:
+                return (b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 6)
+            case Operation.BIT_SET_7:
+                return (b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 7)
+
             case Operation.MEMORY_LOAD:
                 return self.memory[a]
             case Operation.MEMORY_STORE:

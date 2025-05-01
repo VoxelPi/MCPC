@@ -46,12 +46,51 @@ class Operation(Enum):
     CHECK_GREATER = 22
     CHECK_LESS_OR_EQUAL = 23
 
-    MEMORY_LOAD = 25
-    MEMORY_STORE = 26
+    MEMORY_LOAD = 24
+    MEMORY_STORE = 25
 
-    IO_POLL = 27
-    IO_READ = 28
-    IO_WRITE = 29
+    IO_POLL = 26
+    IO_READ = 27
+    IO_WRITE = 28
+
+    STACK_PUSH = 29
+    STACK_PEEK = 30
+    STACK_POP = 31
+
+    BIT_GET_0 = 32
+    BIT_GET_1 = 33
+    BIT_GET_2 = 34
+    BIT_GET_3 = 35
+    BIT_GET_4 = 36
+    BIT_GET_5 = 37
+    BIT_GET_6 = 38
+    BIT_GET_7 = 39
+
+    BIT_SET_0 = 40
+    BIT_SET_1 = 41
+    BIT_SET_2 = 42
+    BIT_SET_3 = 43
+    BIT_SET_4 = 44
+    BIT_SET_5 = 45
+    BIT_SET_6 = 46
+    BIT_SET_7 = 47
+
+    UNDEFINED_00 = 48
+    UNDEFINED_01 = 49
+    UNDEFINED_02 = 50
+    UNDEFINED_03 = 51
+    UNDEFINED_04 = 52
+    UNDEFINED_05 = 53
+    UNDEFINED_06 = 54
+    UNDEFINED_07 = 55
+    UNDEFINED_08 = 56
+    UNDEFINED_09 = 57
+    UNDEFINED_10 = 58
+    UNDEFINED_11 = 59
+    UNDEFINED_12 = 60
+    UNDEFINED_13 = 61
+    UNDEFINED_14 = 62
+    UNDEFINED_15 = 63
 
 class Condition(Enum):
     ALWAYS = 0
