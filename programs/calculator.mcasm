@@ -42,23 +42,35 @@ jump @store_number if RC = 0
     R7 = dec R7
     jump @op_sub if R7 = 0
     R7 = dec R7
+    jump @op_mul if R7 = 0
+    R7 = dec R7
     jump @reset
 
     # Addition, calculates a + b and pushes the result on the stack.
     @op_add
         R3 = R4 + R5
-        [R6] = R3
-        R6 = inc R6
-        write R3
-        jump @read_input
+        jump @store_result
 
     # Subtraction, calculates a - b and pushes the result on the stack.
     @op_sub
         R3 = R4 - R5
-        [R6] = R3
-        R6 = inc R6
-        write R3
-        jump @read_input
+        jump @store_result
+
+    # Multiplication, calculates a * b and pushes the result on the stack.
+    @op_mul
+        R3 = 0
+        RC = R5
+        jump @store_result if RC <= 0 # acc += A while B > 0
+            R3 = R3 + R4
+            RC = dec RC
+            skip -2 if RC > 0
+        jump @store_result
+
+    @store_result
+    [R6] = R3
+    R6 = inc R6
+    write R3
+    jump @read_input
 
 # Push the number in R1 onto the stack
 @store_number
