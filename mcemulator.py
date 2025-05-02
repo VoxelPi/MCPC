@@ -192,3 +192,32 @@ class Emulator:
         # Store result
         if store_result:
             self.registers[i_output_register] = result
+
+
+# MAIN PROGRAM
+if __name__ == "__main__":
+    # Parse arguments
+    argument_parser = argparse.ArgumentParser(
+        prog="MCEMULATOR",
+        description="Emulator for the MCPC",
+    )
+    argument_parser.add_argument("filename")
+    arguments = argument_parser.parse_args()
+    input_filename: str = arguments.filename
+
+    # Read input lines
+    input_filepath = pathlib.Path(input_filename)
+    with open(input_filepath, "r") as input_file:
+        src_lines = [line.strip() for line in input_file.readlines()]
+
+    # Assemble the program
+    program = mcasm.assemble(src_lines)
+    print(f"Assembled {len(program.instructions)} instructions")
+
+    emulator = Emulator()
+    emulator.load_program(program.binary)
+    try:
+        while True:
+            emulator.execute_instruction()
+    except KeyboardInterrupt:
+        exit(0)
