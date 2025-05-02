@@ -170,7 +170,7 @@ class Emulator:
             store_result = self.evaluate_condition(condition, self.registers[7])
             result = value
             if relative:
-                result += value
+                result += self.registers[i_output_register]
 
         else:
             # OPERATION
