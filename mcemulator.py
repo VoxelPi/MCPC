@@ -1,10 +1,14 @@
-from mcpc import *
+import argparse
 import numpy as np
+import pathlib
+
+from mcpc import *
+import mcasm
 
 class Emulator:
     program = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint16)
     registers = np.zeros(8, dtype=np.uint8)
-    memory = np.zeros(16, dtype=np.uint8)
+    memory = np.zeros(256, dtype=np.uint8)
 
     @property
     def pc(self) -> np.uint8:
@@ -16,7 +20,7 @@ class Emulator:
 
     def initialize(self):
         self.registers = np.zeros(8, dtype=np.uint8)
-        self.memory = np.zeros(16, dtype=np.uint8)
+        self.memory = np.zeros(256, dtype=np.uint8)
 
     def load_program(self, program: np.uint16):
         np.copyto(self.program, program)
@@ -24,7 +28,7 @@ class Emulator:
 
     def evaluate_condition(self, condition: Condition, value: np.uint8) -> bool:
         is_zero = (value == 0)
-        is_negative = ((value & 0b0000_0000) != 0)
+        is_negative = ((value & 0b1000_0000) != 0)
 
         match condition:
             case Condition.ALWAYS:
@@ -116,21 +120,21 @@ class Emulator:
                 return (a >> 7) & 0b1
             
             case Operation.BIT_SET_0:
-                return (b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 0)
+                return (b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 0)
             case Operation.BIT_SET_1:
-                return (b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 1)
+                return (b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 1)
             case Operation.BIT_SET_2:
-                return (b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 2)
+                return (b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 2)
             case Operation.BIT_SET_3:
-                return (b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 3)
+                return (b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 3)
             case Operation.BIT_SET_4:
-                return (b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 4)
+                return (b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 4)
             case Operation.BIT_SET_5:
-                return (b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 5)
+                return (b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 5)
             case Operation.BIT_SET_6:
-                return (b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 6)
+                return (b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 6)
             case Operation.BIT_SET_7:
-                return (b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 7)
+                return (b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 7)
 
             case Operation.MEMORY_LOAD:
                 return self.memory[a]
@@ -186,4 +190,5 @@ class Emulator:
         self.pc += 1
 
         # Store result
-        self.registers[i_output_register] = result
+        if store_result:
+            self.registers[i_output_register] = result
