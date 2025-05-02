@@ -137,7 +137,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                     continue
 
                 # CONDITIONAL JUMP
-                if n_instruction_parts == 6 and instruction_parts[2] == "if" and instruction_parts[3] == "r7" and instruction_parts[4] in condition_operators and instruction_parts[5] == '0':
+                if n_instruction_parts == 6 and instruction_parts[2] == "if" and instruction_parts[3] in ("r7", "rc") and instruction_parts[4] in condition_operators and instruction_parts[5] == '0':
                     value = int_or_none(instruction_parts[1])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for jump target: '{instruction_parts[1]}'")
@@ -160,7 +160,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                     continue
 
                 # CONDITIONAL SKIP
-                if n_instruction_parts == 6 and instruction_parts[2] == "if" and instruction_parts[3] == "r7" and instruction_parts[4] in condition_operators and instruction_parts[5] == '0':
+                if n_instruction_parts == 6 and instruction_parts[2] == "if" and instruction_parts[3] in ("r7", "rc") and instruction_parts[4] in condition_operators and instruction_parts[5] == '0':
                     value = int_or_none(instruction_parts[1])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for skip length: '{instruction_parts[1]}'")
@@ -184,7 +184,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                     continue
 
                 # RELATIVE CONDITIONAL LOAD
-                if n_instruction_parts == 7 and instruction_parts[3] == "if" and instruction_parts[4] == "r7" and instruction_parts[5] in condition_operators and instruction_parts[6] == '0':
+                if n_instruction_parts == 7 and instruction_parts[3] == "if" and instruction_parts[4] in ("r7", "rc") and instruction_parts[5] in condition_operators and instruction_parts[6] == '0':
                     value = int_or_none(instruction_parts[2])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for load value: '{instruction_parts[2]}'")
@@ -233,7 +233,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                     raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for load value: '{instruction_parts[2]}'")
 
                 # CONDITIONAL LOAD
-                if n_instruction_parts == 7 and instruction_parts[3] == "if" and instruction_parts[4] == "r7" and instruction_parts[5] in condition_operators and instruction_parts[6] == '0':
+                if n_instruction_parts == 7 and instruction_parts[3] == "if" and instruction_parts[4] in ("r7", "rc") and instruction_parts[5] in condition_operators and instruction_parts[6] == '0':
                     value = int_or_none(instruction_parts[2])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for load value: '{instruction_parts[2]}'")
