@@ -1,0 +1,71 @@
+# R3: Result
+# R4: Argument A
+# R5: Argument B
+# R6: Stack pointer
+
+# Reset the calculator.
+@reset
+R6 = 0 # Reset stack poitner to 0
+write R6 # Output 0
+
+# Read input
+@read_input
+R1 = read
+R7 = R1 bit 7
+
+jump @store_number if RC = 0
+
+# Pop the last two number of the stack, perform the calculation and push
+# The result on the stack.
+@perform_calculation
+    # Pop the top value and put in R5.
+    R6 = dec R6
+    R5 = [R6]
+
+    # Pop the top value and put in R4.
+    R6 = dec R6
+    R4 = [R6]
+
+    # Check stack-underflow. If this happens, reset.
+    R7 = R6
+    jump @reset if R7 < 0
+
+    # Clear bit 7 of the input.
+    R2 = 0
+    R7 = R1
+    R7 bit 7 = R2
+
+    # Check operation
+    jump @reset if R7 = 0
+    R7 = dec R7
+    jump @op_add if R7 = 0
+    R7 = dec R7
+    jump @op_sub if R7 = 0
+    R7 = dec R7
+    jump @reset
+
+    # Addition, calculates a + b and pushes the result on the stack.
+    @op_add
+        R3 = R4 + R5
+        [R6] = R3
+        R6 = inc R6
+        write R3
+        jump @read_input
+
+    # Subtraction, calculates a - b and pushes the result on the stack.
+    @op_sub
+        R3 = R4 - R5
+        [R6] = R3
+        R6 = inc R6
+        write R3
+        jump @read_input
+
+# Push the number in R1 onto the stack
+@store_number
+    # Push number on stack
+    [R6] = R1
+    R6 = inc R6
+
+    # Output last input number.
+    write R1
+    jump @read_input
