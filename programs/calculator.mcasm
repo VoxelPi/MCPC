@@ -44,6 +44,9 @@ jump @store_number if RC = 0
     R7 = dec R7
     jump @op_mul if R7 = 0
     R7 = dec R7
+    jump @op_div if R7 = 0
+
+    # Invalid operation, reset the calculator.
     jump @reset
 
     # Addition, calculates a + b and pushes the result on the stack.
@@ -64,6 +67,17 @@ jump @store_number if RC = 0
             R3 = R3 + R4
             RC = dec RC
             skip -2 if RC > 0
+        jump @store_result
+
+    # Division, calculates a / b and pushes the result on the stack.
+    @op_div
+        R3 = 0
+        RC = R4
+        jump @store_result if RC <= 0
+            RC = RC - R5
+            jump @store_result if RC < 0
+            R3 = inc R3
+            skip -3
         jump @store_result
 
     @store_result
