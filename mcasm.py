@@ -331,7 +331,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                 if value < 0 or value > 7:
                     raise Exception(f"Failed to parse line {i_src_line}: Invalid bit index {value}")
                 
-                instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, list(Operation)[Operation.BIT_SET_0.value + value])
+                instructions[i_instruction] = opcode_exec_instruction(input_register, output_register, output_register, list(Operation)[Operation.BIT_SET_0.value + value])
                 continue
 
             # STORE
@@ -342,8 +342,8 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
                 address_register = parse_register(address_register_id)
 
                 if not is_register_id(instruction_parts[2]):
-                    raise Exception(f"Failed to parse line {i_src_line}: Invalid register for memory value: '{address_register_id}'")
-                input_register = parse_register(address_register_id)
+                    raise Exception(f"Failed to parse line {i_src_line}: Invalid register for memory value: '{instruction_parts[2]}'")
+                input_register = parse_register(instruction_parts[2])
 
                 instructions[i_instruction] = opcode_exec_instruction(address_register, input_register, input_register, Operation.MEMORY_STORE)
                 continue
