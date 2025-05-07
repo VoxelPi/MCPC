@@ -71,6 +71,10 @@ class AssembledProgram():
     src_mapping: dict[int, int] # Instruction id to code line.
     labels: dict[str, int]
 
+    @property
+    def n_instructions(self) -> int:
+        return len(self.instructions)
+
 def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -> AssembledProgram:
     # Remove comments
     code_lines = np.array([line.split('#', 1)[0].strip() for line in src_lines])
