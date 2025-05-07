@@ -71,7 +71,7 @@ class AssembledProgram():
     src_mapping: dict[int, int] # Instruction id to code line.
     labels: dict[str, int]
 
-def assemble(src_lines: list[str]) -> AssembledProgram:
+def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -> AssembledProgram:
     # Remove comments
     code_lines = np.array([line.split('#', 1)[0].strip() for line in src_lines])
 
@@ -89,6 +89,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
     instruction_lines: list[str] = []
     instruction_mapping: list[int] = []
     labels: dict[str, int] = {}
+    macro_symbols: dict[str, str] = default_macro_symbols
 
     for i_code_line, line in enumerate(code_lines):
         i_src_line = code_line_mapping[i_code_line]
@@ -100,6 +101,15 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
             labels[label_id] = len(instruction_lines)
             continue
 
+        if line.startswith("!define"):
+            line_parts = line.split(" ", 2)
+            if len(line_parts) < 3:
+                raise Exception(f"Invalid define in line {i_src_line+1}")
+            symbol = line_parts[1]
+            value = line_parts[2]
+            macro_symbols[symbol] = value
+            continue
+
         instruction_lines.append(line)
         instruction_mapping.append(i_src_line)
     n_instructions = len(instruction_lines)
@@ -108,7 +118,10 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
     instructions_text = "\n".join(instruction_lines)
     for label, instruction_id in labels.items():
         instructions_text = instructions_text.replace(f"@{label}", f"{instruction_id}")
-    for symbol, value in ASSEMBLER_SYMBOLS.items():
+
+    # Replace symbols
+    symbols = ASSEMBLER_SYMBOLS | macro_symbols
+    for symbol, value in symbols.items():
         instructions_text = instructions_text.replace(symbol, value)
     instruction_lines = instructions_text.split("\n")
 
@@ -386,7 +399,7 @@ def assemble(src_lines: list[str]) -> AssembledProgram:
             print(f"Exception whilst parsing line {i_src_line}: '{src_line}'")
             raise exception
 
-        print(f"Failed to parse line {i_src_line}: '{src_line}'")
+        raise Exception(f"Failed to parse line {i_src_line}: '{src_line}'")
 
     memory = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint16)
     memory[0:n_instructions] = instructions[0:n_instructions]

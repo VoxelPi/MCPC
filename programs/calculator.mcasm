@@ -3,9 +3,14 @@
 # R5: Argument B
 # R6: Stack pointer
 
+!define STACK_POINTER R6
+!define ARGUMENT_A R4
+!define ARGUMENT_B R5
+!define RESULT R3
+
 # Reset the calculator.
 @reset
-R6 = 0 # Reset stack pointer to 0
+STACK_POINTER = 0 # Reset stack pointer to 0
 write R6 # Output 0
 
 # Read input
@@ -19,15 +24,15 @@ jump @store_number if RC = 0
 # The result on the stack.
 @perform_calculation
     # Pop the top value and put in R5.
-    R6 = dec R6
-    R5 = [R6]
+    STACK_POINTER = dec STACK_POINTER
+    R5 = [STACK_POINTER]
 
     # Pop the top value and put in R4.
-    R6 = dec R6
-    R4 = [R6]
+    STACK_POINTER = dec STACK_POINTER
+    R4 = [STACK_POINTER]
 
     # Check stack-underflow. If this happens, reset.
-    R7 = R6
+    RC = STACK_POINTER
     jump @reset if R7 < 0
 
     # Clear bit 7 of the input.
