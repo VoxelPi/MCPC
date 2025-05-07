@@ -1,0 +1,6 @@
+!define DAC R6
+
+R1 = MAC R2 R3
+R1 = MACRS ADC R3
+
+configure dac R1

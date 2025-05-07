@@ -330,6 +330,21 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                     instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, operation_check(condition))
                     continue
 
+                # MAC
+                if n_instruction_parts == 5 and instruction_parts[2] == "mac" and is_register_id(instruction_parts[3]) and is_register_id(instruction_parts[4]):
+                    input_a_register = parse_register(instruction_parts[3])
+                    input_b_register = parse_register(instruction_parts[4])
+                    
+                    instructions[i_instruction] = opcode_exec_instruction(input_a_register, input_b_register, output_register, Operation.MULTIPLY_ACCUMULATE)
+                    continue
+
+                # MAC RS
+                if n_instruction_parts == 5 and instruction_parts[2] == "macrs" and instruction_parts[3] == "adc" and is_register_id(instruction_parts[4]):
+                    input_register = parse_register(instruction_parts[4])
+                    
+                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, Operation.MULTIPLY_ACCUMULATE_RESET)
+                    continue
+
                 # BINARY OPERATIONS
                 if n_instruction_parts == 5 and instruction_parts[3] in binary_operations and is_register_id(instruction_parts[2]) and is_register_id(instruction_parts[4]):
                     input_a_register = parse_register(instruction_parts[2])
@@ -389,6 +404,21 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                 
                 instructions[i_instruction] = opcode_exec_instruction(Register.R1, Register.R1, output_register, Operation.FILL)
                 continue
+
+            # CONFIGURE
+            if instruction_parts[0] == "configure":
+                if len(instruction_parts) < 2:
+                    raise Exception(f"Failed to parse line {i_src_line}: Missing configuration target.")
+                
+                if instruction_parts[1] == "dac":
+                    if len(instruction_parts) < 3 or not is_register_id(instruction_parts[2]):
+                        raise Exception(f"Failed to parse line {i_src_line}: DAC configuration requires one input.")
+                    
+                    input_register = parse_register(instruction_parts[2])
+                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, input_register, Operation.CONFIGURE_DAC)
+                    continue
+                
+                raise Exception(f"Failed to parse line {i_src_line}: Invalid configuration target '{instruction_parts[1]}'")
 
             # IO WRITE
             if n_instruction_parts == 2 and instruction_parts[0] == "write":
