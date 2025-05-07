@@ -149,6 +149,9 @@ class Emulator:
             case Operation.IO_WRITE:
                 print(f"[IO] {a}")
                 return a # Return the value
+            
+            case Operation.MULTIPLY:
+                return a * b
 
     def execute_instruction(self):
         # Fetch instruction

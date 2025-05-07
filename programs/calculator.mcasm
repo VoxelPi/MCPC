@@ -61,12 +61,7 @@ jump @store_number if RC = 0
 
     # Multiplication, calculates a * b and pushes the result on the stack.
     @op_mul
-        R3 = 0
-        RC = R5
-        jump @store_result if RC <= 0 # acc += A while B > 0
-            R3 = R3 + R4
-            RC = dec RC
-            skip -2 if RC > 0
+        R3 = R4 * R5
         jump @store_result
 
     # Division, calculates a / b and pushes the result on the stack.

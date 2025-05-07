@@ -60,6 +60,7 @@ binary_operations = {
     'xnor': Operation.XNOR,
     '+': Operation.ADD,
     '-': Operation.SUB,
+    '*': Operation.MULTIPLY,
 }
 
 @dataclass

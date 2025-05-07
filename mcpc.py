@@ -75,7 +75,7 @@ class Operation(Enum):
     BIT_SET_6 = 46
     BIT_SET_7 = 47
 
-    UNDEFINED_00 = 48
+    MULTIPLY = 48
     UNDEFINED_01 = 49
     UNDEFINED_02 = 50
     UNDEFINED_03 = 51
