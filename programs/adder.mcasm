@@ -1,0 +1,7 @@
+R1 = 0
+
+@loop
+R2 = read
+R1 = R1 + R2
+write R1
+jump @loop

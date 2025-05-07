@@ -1,0 +1,7 @@
+# check if input is available.
+R7 = poll
+skip 2 if R7 = 0
+    R1 = read
+
+# Increment
+R1 = inc R1

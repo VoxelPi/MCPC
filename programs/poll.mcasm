@@ -1,0 +1,5 @@
+RC = poll
+skip -1 if RC = 0
+
+write RC
+jump 0

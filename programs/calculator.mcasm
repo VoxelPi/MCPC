@@ -5,7 +5,7 @@
 
 # Reset the calculator.
 @reset
-R6 = 0 # Reset stack poitner to 0
+R6 = 0 # Reset stack pointer to 0
 write R6 # Output 0
 
 # Read input
