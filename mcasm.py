@@ -51,6 +51,8 @@ condition_operators = {
     "<=": Condition.LESS_OR_EQUAL,
 }
 
+# Binary operators.
+# These are operations with the following syntax: <output> = <a> <operator> <b>
 binary_operations = {
     'and': Operation.AND,
     'nand': Operation.NAND,
@@ -65,7 +67,8 @@ binary_operations = {
     '%': Operation.MODULO,
 }
 
-# Unary operators. These are operations with the following syntax: <output> = <operator> <input>
+# Unary operators.
+# These are operations with the following syntax: <output> = <operator> <input>
 # Internally the input is send to A as well as B.
 unary_operators = {
     'not': Operation.NAND,
