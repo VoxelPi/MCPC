@@ -9,6 +9,7 @@ class Emulator:
     program = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint16)
     registers = np.zeros(8, dtype=np.uint8)
     memory = np.zeros(256, dtype=np.uint8)
+    accumulator = np.uint16(0)
 
     @property
     def pc(self) -> np.uint8:
@@ -152,6 +153,26 @@ class Emulator:
             
             case Operation.MULTIPLY:
                 return a * b
+            case Operation.DIVIDE:
+                return a // b
+            case Operation.MODULO:
+                return a % b
+            case Operation.SQRT:
+                return int(np.sqrt(a))
+            
+            case Operation.MULTIPLY_ACCUMULATE:
+                self.accumulator += np.uint8(a * b)
+                return np.uint8(self.accumulator)
+            case Operation.MULTIPLY_ACCUMULATE_RESET:
+                adc = np.uint8(int(float(input("Enter analog value [0, 1]: ")) * 255))
+                self.accumulator = adc * b
+                return np.uint8(self.accumulator)
+            
+            case Operation.CONFIGURE_DAC:
+                return a
+            
+            case _:
+                raise Exception(f"Operation {operation} ({operation.value}) is not implemented")
 
     def execute_instruction(self):
         # Fetch instruction
