@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import pathlib
+import time
 
 from mcpc import *
 import mcasm
@@ -229,8 +230,10 @@ if __name__ == "__main__":
         description="Emulator for the MCPC",
     )
     argument_parser.add_argument("filename")
+    argument_parser.add_argument("-t", "--time")
     arguments = argument_parser.parse_args()
     input_filename: str = arguments.filename
+    clock_time: float = float(arguments.time if arguments.time is not None else 0.0)
 
     # Read input lines
     input_filepath = pathlib.Path(input_filename)
@@ -246,5 +249,7 @@ if __name__ == "__main__":
     try:
         while True:
             emulator.execute_instruction()
+            if clock_time > 0:
+                time.sleep(clock_time)
     except KeyboardInterrupt:
         exit(0)
