@@ -61,6 +61,17 @@ binary_operations = {
     '+': Operation.ADD,
     '-': Operation.SUB,
     '*': Operation.MULTIPLY,
+    '/': Operation.DIVIDE,
+    '%': Operation.MODULO,
+}
+
+# Unary operators. These are operations with the following syntax: <output> = <operator> <input>
+# Internally the input is send to A as well as B.
+unary_operators = {
+    'not': Operation.NAND,
+    'inc': Operation.INC,
+    'dec': Operation.DEC,
+    'sqrt': Operation.SQRT,
 }
 
 @dataclass
@@ -270,24 +281,6 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                     instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, list(Operation)[Operation.BIT_GET_0.value + value])
                     continue
 
-                # NOT
-                if n_instruction_parts == 4 and instruction_parts[2] == "not" and is_register_id(instruction_parts[3]):
-                    input_register = parse_register(instruction_parts[3])
-                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, Operation.NAND)
-                    continue
-
-                # INC
-                if n_instruction_parts == 4 and instruction_parts[2] == "inc" and is_register_id(instruction_parts[3]):
-                    input_register = parse_register(instruction_parts[3])
-                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, Operation.INC)
-                    continue
-
-                # DEC
-                if n_instruction_parts == 4 and instruction_parts[2] == "dec" and is_register_id(instruction_parts[3]):
-                    input_register = parse_register(instruction_parts[3])
-                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, Operation.DEC)
-                    continue
-
                 # SHIFT
                 if n_instruction_parts == 5 and instruction_parts[2] == "shift" and is_register_id(instruction_parts[4]):
                     input_register = parse_register(instruction_parts[4])
@@ -343,6 +336,14 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                     input_register = parse_register(instruction_parts[4])
                     
                     instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, Operation.MULTIPLY_ACCUMULATE_RESET)
+                    continue
+
+                # UNARY OPERATIONS
+                if n_instruction_parts == 4 and instruction_parts[2] in unary_operators and is_register_id(instruction_parts[3]):
+                    input_register = parse_register(instruction_parts[3])
+                    operation = unary_operators[instruction_parts[2]]
+
+                    instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, output_register, operation)
                     continue
 
                 # BINARY OPERATIONS

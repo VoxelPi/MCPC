@@ -56,6 +56,11 @@ RC = poll
 R4 = read 
 write R4
 
+R3 = R4 * R5
+R3 = R4 / R5
+R3 = R4 % R5
+R3 = sqrt R4
+
 @loop
 R1 += 1
 jump @loop
