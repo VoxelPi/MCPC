@@ -49,131 +49,131 @@ class Emulator:
             case Condition.LESS_OR_EQUAL:
                 return is_zero or is_negative
 
-    def evaluate_operation(self, operation: Operation, a: np.uint8, b: np.uint8) -> np.uint8:
+    def evaluate_operation(self, operation: Operation, a: np.uint8, b: np.uint8) -> tuple[np.uint8, bool]:
         match operation:
             case Operation.CLEAR:
-                return np.uint8(0)
+                return (np.uint8(0), True)
             case Operation.FILL:
-                return np.uint8(0xFF)
+                return (np.uint8(0xFF), True)
             case Operation.AND:
-                return a & b
+                return (a & b, True)
             case Operation.NAND:
-                return ~(a & b)
+                return (~(a & b), True)
             case Operation.OR:
-                return a | b
+                return (a | b, True)
             case Operation.NOR:
-                return ~(a | b)
+                return (~(a | b), True)
             case Operation.XOR:
-                return a ^ b
+                return (a ^ b, True)
             case Operation.XNOR:
-                return ~(a ^ b)
+                return (~(a ^ b), True)
             
             case Operation.INC:
-                return a + 1
+                return (a + 1, True)
             case Operation.DEC:
-                return a - 1
+                return (a - 1, True)
             case Operation.ADD:
-                return a + b
+                return (a + b, True)
             case Operation.SUB:
-                return a - b
+                return (a - b, True)
             
             case Operation.SHIFT_LEFT:
-                return a << 1
+                return (a << 1, True)
             case Operation.SHIFT_RIGHT:
-                return a >> 1
+                return (a >> 1, True)
             case Operation.ROTATE_LEFT:
-                return (a << 1) | ((a >> 7) & 0b1)
+                return ((a << 1) | ((a >> 7) & 0b1), True)
             case Operation.ROTATE_RIGHT:
-                return (a >> 1) | ((a & 0b1) << 7)
+                return ((a >> 1) | ((a & 0b1) << 7), True)
             
             case Operation.CHECK_ALWAYS:
-                return self.evaluate_condition(Condition.ALWAYS, a)
+                return (self.evaluate_condition(Condition.ALWAYS, a), True)
             case Operation.CHECK_NEVER:
-                return self.evaluate_condition(Condition.NEVER, a)
+                return (self.evaluate_condition(Condition.NEVER, a), True)
             case Operation.CHECK_EQUAL:
-                return self.evaluate_condition(Condition.EQUAL, a)
+                return (self.evaluate_condition(Condition.EQUAL, a), True)
             case Operation.CHECK_NOT_EQUAL:
-                return self.evaluate_condition(Condition.NOT_EQUAL, a)
+                return (self.evaluate_condition(Condition.NOT_EQUAL, a), True)
             case Operation.CHECK_LESS:
-                return self.evaluate_condition(Condition.LESS, a)
+                return (self.evaluate_condition(Condition.LESS, a), True)
             case Operation.CHECK_GREATER_OR_EQUAL:
-                return self.evaluate_condition(Condition.GREATER_OR_EQUAL, a)
+                return (self.evaluate_condition(Condition.GREATER_OR_EQUAL, a), True)
             case Operation.CHECK_GREATER:
-                return self.evaluate_condition(Condition.GREATER, a)
+                return (self.evaluate_condition(Condition.GREATER, a), True)
             case Operation.CHECK_LESS_OR_EQUAL:
-                return self.evaluate_condition(Condition.LESS_OR_EQUAL, a)
+                return (self.evaluate_condition(Condition.LESS_OR_EQUAL, a), True)
             
             case Operation.BIT_GET_0:
-                return (a >> 0) & 0b1
+                return ((a >> 0) & 0b1, True)
             case Operation.BIT_GET_1:
-                return (a >> 1) & 0b1
+                return ((a >> 1) & 0b1, True)
             case Operation.BIT_GET_2:
-                return (a >> 2) & 0b1
+                return ((a >> 2) & 0b1, True)
             case Operation.BIT_GET_3:
-                return (a >> 3) & 0b1
+                return ((a >> 3) & 0b1, True)
             case Operation.BIT_GET_4:
-                return (a >> 4) & 0b1
+                return ((a >> 4) & 0b1, True)
             case Operation.BIT_GET_5:
-                return (a >> 5) & 0b1
+                return ((a >> 5) & 0b1, True)
             case Operation.BIT_GET_6:
-                return (a >> 6) & 0b1
+                return ((a >> 6) & 0b1, True)
             case Operation.BIT_GET_7:
-                return (a >> 7) & 0b1
+                return ((a >> 7) & 0b1, True)
             
             case Operation.BIT_SET_0:
-                return (b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 0)
+                return ((b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 0), True)
             case Operation.BIT_SET_1:
-                return (b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 1)
+                return ((b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 1), True)
             case Operation.BIT_SET_2:
-                return (b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 2)
+                return ((b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 2), True)
             case Operation.BIT_SET_3:
-                return (b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 3)
+                return ((b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 3), True)
             case Operation.BIT_SET_4:
-                return (b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 4)
+                return ((b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 4), True)
             case Operation.BIT_SET_5:
-                return (b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 5)
+                return ((b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 5), True)
             case Operation.BIT_SET_6:
-                return (b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 6)
+                return ((b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 6), True)
             case Operation.BIT_SET_7:
-                return (b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 7)
+                return ((b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 7), True)
 
             case Operation.MEMORY_LOAD:
-                return self.memory[a]
+                return (self.memory[a], True)
             case Operation.MEMORY_STORE:
                 self.memory[a] = b
-                return b # Return the value
+                return (b, False) # Return the value
             
             case Operation.IO_POLL:
-                return True # TODO: Actually check if input is available
+                return (True, True) # TODO: Actually check if input is available
             case Operation.IO_READ:
-                return np.uint8(int(input("[IO] Input a number: ")))
+                return (np.uint8(int(input("[IO] Input a number: "))), True)
             case Operation.IO_WRITE:
                 print(f"[IO] {a}")
-                return a # Return the value
+                return (a, False) # Return the value
             
             case Operation.MULTIPLY:
-                return a * b
+                return (a * b, True)
             case Operation.DIVIDE:
-                return a // b
+                return (a // b, True)
             case Operation.MODULO:
-                return a % b
+                return (a % b, True)
             case Operation.SQRT:
-                return int(np.sqrt(a))
+                return (int(np.sqrt(a)), True)
             
             case Operation.MULTIPLY_ACCUMULATE:
                 self.accumulator += np.uint8(a * b)
-                return np.uint8(self.accumulator)
+                return (np.uint8(self.accumulator), True)
             case Operation.MULTIPLY_ACCUMULATE_RESET:
                 adc = np.uint8(int(float(input("Enter analog value [0, 1]: ")) * 255))
                 self.accumulator = adc * b
-                return np.uint8(self.accumulator)
+                return (np.uint8(self.accumulator), True)
             
             case Operation.CONFIGURE_DAC:
-                return a
+                return (a, False)
             
             case Operation.BREAK:
                 input("Press any key to continue")
-                return a
+                return (a, False)
             
             case _:
                 raise Exception(f"Operation {operation} ({operation.value}) is not implemented")
@@ -211,8 +211,7 @@ class Emulator:
             # Execute
             a = self.registers[i_input_a_register]
             b = self.registers[i_input_b_register]
-            store_result = True
-            result = self.evaluate_operation(operation, a, b)
+            result, store_result = self.evaluate_operation(operation, a, b)
 
         # Increment PC
         self.pc += 1
