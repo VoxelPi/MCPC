@@ -63,18 +63,28 @@ Instruction|Description
 `<out> = <a> xor <b>`|Calculates the value of `a xor b` and stores the result in `out`.
 `<out> = <a> xnor <b>`|Calculates the value of `not (a xor b)` and stores the result in `out`.
 `<out> = <a> + <b>`|Adds the values of the reigsters `a` and `b` and stores the result in `out`.
-`<out> = <a> - <b>`|Substracts the values of reigster `b` from the register `a` <br>and `b` and stores the result in `out`.
+`<out> = <a> - <b>`|Substracts the value of reigster `b` from the register `a` <br> and stores the result in `out`.
+`<out> = <a> * <b>`|Multiplies the values of the reigsters `a` and `b` and stores the result in `out`.
+`<out> = <a> / <b>`|Divides the value of reigster `a` through the register `b` <br> and stores the result in `out`.
+`<out> = <a> % <b>`|Divides the value of reigster `a` through the register `b` <br> and stores the remainder in `out`.
 `<out> = inc <a>`|Calculates the value of `a + 1` and stores the result in `out`.
 `<out> = dec <a>`|Calculates the value of `a - 1` and stores the result in `out`.
 `<out> = shift right <a>`|Shifts the value of `a` one to the right (filling the msb with 0) and stores the value in `out`.
 `<out> = shift left <a>`|Shifts the value of `a` one to the left (filling the lsb with 0) and stores the value in `out`.
 `<out> = rotate right <a>`|Rotates the value of `a` one to the right (filling the msb with the lsb) and stores the value in `out`.
 `<out> = rotate left <a>`|Rotates the value of `a` one to the left (filling the lsb with the msb) and stores the value in `out`.
+`<out> = sqrt <a>`|Calculates the sqrt of `a` and stores it in `out`.
+
+#### Bit
+Instruction|Description
+---|---
+`<out> = <r> bit {0-7}`|Checks if the given bit of `r` is set. If thats the case `out` is set to `1` otherwise it is set to `0`.
+`<out> bit {0-7} = <r>`|Sets the given bit of `out` to the boolean value of `r`. The other bits of `out` remain unchanged.
 
 #### Checks
 Instruction|Description
 ---|---
-`<out> = check <r> <condition>`|If the register `r` fulfills the given condition, <br>`1` is stored in `out`. Otherwise `0` is stored in `out`
+`<out> = check <r> <condition>`|If the register `r` fulfills the given condition, <br>`1` is stored in `out`. Otherwise `0` is stored in `out`.
 
 #### Memory
 Instruction|Description
@@ -89,9 +99,17 @@ Instruction|Description
 `<r> = read`|Reads a value from the input and stores the value in `r`. <br>If no input is available, this blocks until input is available.
 `write <r>`|Writes the value of `r` to the output.
 
+### DSP
+Instruction|Description
+---|---
+`<out> = mac <a> <b>`|Uses the MAC unit to multiply `a` and `b` and adds the result to the accumulator.
+`<out> = macrs adc <b>`|Sets the accumulator to the product of the current value of the ADC and `b`.
+`configure dac <r>`|Configures the DAC with the value of `r`.
+
 #### Other
 Instruction|Description
 ---|---
-`nop`|Does nothing
+`nop`|Does nothing.
+`break`|Causes the computer to halt at the execution of this command.
 `clear <r>`|Clears all bits of the register `r`.
 `fill <r>`|Sets all bits of the register `r`.
