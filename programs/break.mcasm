@@ -1,0 +1,4 @@
+R1 += 1
+write R1
+break
+jump 0

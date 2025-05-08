@@ -90,7 +90,7 @@ class Operation(Enum):
     UNDEFINED_12 = 60
     UNDEFINED_13 = 61
     UNDEFINED_14 = 62
-    UNDEFINED_15 = 63
+    BREAK = 63
 
 class Condition(Enum):
     ALWAYS = 0

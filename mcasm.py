@@ -74,6 +74,12 @@ unary_operators = {
     'sqrt': Operation.SQRT,
 }
 
+# Instructions that take no arguments. Internally the register R1 is used as A, B and output
+no_args_instructions = {
+    'nop': Operation.AND,
+    'break': Operation.BREAK,
+}
+
 @dataclass
 class AssembledProgram():
     binary: np.ndarray[np.uint16]
@@ -149,9 +155,10 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
         n_instruction_parts = len(instruction_parts)
         try:
 
-            # NOP
-            if instruction_text == 'nop':
-                instructions[i_instruction] = opcode_exec_instruction(Register.R1, Register.R1, Register.R1, Operation.AND)
+            # NO ARGS
+            if instruction_text in no_args_instructions:
+                operation = no_args_instructions[instruction_text]
+                instructions[i_instruction] = opcode_exec_instruction(Register.R1, Register.R1, Register.R1, operation)
                 continue
 
             # JUMP

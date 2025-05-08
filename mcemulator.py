@@ -171,6 +171,10 @@ class Emulator:
             case Operation.CONFIGURE_DAC:
                 return a
             
+            case Operation.BREAK:
+                input("Press any key to continue")
+                return a
+            
             case _:
                 raise Exception(f"Operation {operation} ({operation.value}) is not implemented")
 
