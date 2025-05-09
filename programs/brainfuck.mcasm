@@ -1,0 +1,145 @@
+# 1: >
+# 2: <
+# 3: +
+# 4: -
+# 5: . Output
+# 6: , Input
+# 7: [
+# 8: ]
+
+# Load program
+R6 = 255 # Number of instructions
+@program_input
+    R7 = read
+    R6 = inc R6
+    [R6] = R7
+    jump @program_input if R7 != 0
+
+# Output number of instructions
+@program_input_finished
+write R6
+
+# Initialize registers for main loop
+R6 = 0 # Initialize instruction pointer
+R5 = 32 # Initialize data pointer
+
+# Main Loop
+@main_loop
+R4 = [R6] # Instruction
+R3 = [R5] # Data
+
+# Jump to the R4'th entry in the jump table.
+R2 = inc R4
+skip R2
+jump 0
+jump @op_inc_dp
+jump @op_dec_dp
+jump @op_inc_dv
+jump @op_dec_dv
+jump @op_output
+jump @op_input
+jump @op_loop_start
+jump @op_loop_end
+
+# Increment data pointer instruction, '>'
+@op_inc_dp
+    R5 = inc R5
+    jump @post_instruction
+
+# Decrement data pointer instruction, '<'
+@op_dec_dp
+    R5 = dec R5
+    jump @post_instruction
+
+# Increment data value instruction, '>'
+@op_inc_dv
+    R3 = inc R3
+    [R5] = R3
+    jump @post_instruction
+
+# Decrement data value instruction, '<'
+@op_dec_dv
+    R3 = dec R3
+    [R5] = R3
+    jump @post_instruction
+
+# Output data value instruction, '.'
+@op_output
+    write R3
+    jump @post_instruction
+
+# Input data value instruction, ','
+@op_input
+    R3 = read
+    [R5] = R3
+    jump @post_instruction
+
+# Loop start instruction, '['
+@op_loop_start
+    # Enter the loop if the current value is != 0.
+    RC = R3
+    jump @post_instruction if RC != 0
+
+    # Find the matching bracket.
+    RC = 1 # Initialize loop counter
+    @loop_start_search_start
+        R6 = inc R6
+        R4 = [R6]
+
+        R2 = inc R4
+        skip R2
+        jump 0
+        jump @loop_start_search_start
+        jump @loop_start_search_start
+        jump @loop_start_search_start
+        jump @loop_start_search_start
+        jump @loop_start_search_start
+        jump @loop_start_search_start
+        jump @loop_start_search_open
+        jump @loop_start_search_close
+
+        @loop_start_search_open
+            RC = inc RC
+            jump @loop_start_search_start
+
+        @loop_start_search_close
+            RC = dec RC
+            jump @loop_start_search_start if RC != 0
+            jump @post_instruction 
+
+# Loop end instruction, ']'
+@op_loop_end
+    # Break the loop if the current value is 0.
+    RC = R3
+    jump @post_instruction if RC = 0
+
+    # Find the matching bracket.
+    RC = 1 # Initialize loop counter
+    @loop_end_search_start
+        R6 = dec R6
+        R4 = [R6]
+
+        R2 = inc R4
+        skip R2
+        jump 0
+        jump @loop_end_search_start
+        jump @loop_end_search_start
+        jump @loop_end_search_start
+        jump @loop_end_search_start
+        jump @loop_end_search_start
+        jump @loop_end_search_start
+        jump @loop_end_search_open
+        jump @loop_end_search_close
+
+        @loop_end_search_open
+            RC = dec RC
+            jump @loop_end_search_start if RC != 0
+            jump @post_instruction 
+
+        @loop_end_search_close
+            RC = inc RC
+            jump @loop_end_search_start
+
+@post_instruction
+R6 = inc R6
+jump @main_loop
