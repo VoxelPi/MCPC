@@ -142,16 +142,21 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
         instruction_mapping.append(i_src_line)
     n_instructions = len(instruction_lines)
 
-    # Replace used labels
-    instructions_text = "\n".join(instruction_lines)
     for label, instruction_id in labels.items():
-        instructions_text = instructions_text.replace(f"@{label}", f"{instruction_id}")
+        if instruction_id >= n_instructions:
+            raise Exception(f"The label {label} marks no instruction")
 
-    # Replace symbols
-    symbols = ASSEMBLER_SYMBOLS | macro_symbols
-    for symbol, value in symbols.items():
-        instructions_text = instructions_text.replace(symbol, value)
-    instruction_lines = instructions_text.split("\n")
+    if len(instruction_lines) > 0:
+        # Replace used labels
+        instructions_text = "\n".join(instruction_lines)
+        for label, instruction_id in labels.items():
+            instructions_text = instructions_text.replace(f"@{label}", f"{instruction_id}")
+
+        # Replace symbols
+        symbols = ASSEMBLER_SYMBOLS | macro_symbols
+        for symbol, value in symbols.items():
+            instructions_text = instructions_text.replace(symbol, value)
+        instruction_lines = instructions_text.split("\n")
 
     instructions = np.zeros(n_instructions, dtype=np.uint16)
     for i_instruction, instruction_text in enumerate(instruction_lines):
