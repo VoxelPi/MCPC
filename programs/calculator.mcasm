@@ -39,40 +39,25 @@ jump @store_number if RC = 0
     R2 = 0
     R7 = R1
     R7 bit 7 = R2
+    R7 = inc R7
 
-    # Check operation
-    jump @reset if R7 = 0
-    R7 = dec R7
-    jump @op_add if R7 = 0
-    R7 = dec R7
-    jump @op_sub if R7 = 0
-    R7 = dec R7
-    jump @op_mul if R7 = 0
-    R7 = dec R7
-    jump @op_div if R7 = 0
-    R7 = dec R7
-    jump @op_and if R7 = 0
-    R7 = dec R7
-    jump @op_nand if R7 = 0
-    R7 = dec R7
-    jump @op_or if R7 = 0
-    R7 = dec R7
-    jump @op_nor if R7 = 0
-    R7 = dec R7
-    jump @op_xor if R7 = 0
-    R7 = dec R7
-    jump @op_xnor if R7 = 0
-    R7 = dec R7
-    jump @op_shift_left if R7 = 0
-    R7 = dec R7
-    jump @op_shift_right if R7 = 0
-    R7 = dec R7
-    jump @op_rotate_left if R7 = 0
-    R7 = dec R7
-    jump @op_rotate_right if R7 = 0
-
-    # Invalid operation, reset the calculator.
+    # Goto operation
+    skip R7
     jump @reset
+    jump @op_add
+    jump @op_sub
+    jump @op_mul
+    jump @op_div
+    jump @op_and
+    jump @op_nand
+    jump @op_or
+    jump @op_nor
+    jump @op_xor
+    jump @op_xnor
+    jump @op_shift_left
+    jump @op_shift_right
+    jump @op_rotate_left
+    jump @op_rotate_right
 
     # Addition, calculates a + b and pushes the result on the stack.
     @op_add
