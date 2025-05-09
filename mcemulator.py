@@ -11,6 +11,7 @@ class Emulator:
     registers = np.zeros(8, dtype=np.uint8)
     memory = np.zeros(256, dtype=np.uint8)
     accumulator = np.uint16(0)
+    halt: bool = False
 
     @property
     def pc(self) -> np.uint8:
@@ -147,7 +148,7 @@ class Emulator:
             case Operation.IO_POLL:
                 return (True, True) # TODO: Actually check if input is available
             case Operation.IO_READ:
-                return (np.uint8(int(input("[IO] Input a number: "))), True)
+                return (np.uint8(int(input("[IO] Input a number: "), 0)), True)
             case Operation.IO_WRITE:
                 print(f"[IO] {a}")
                 return (a, False) # Return the value
@@ -173,7 +174,7 @@ class Emulator:
                 return (a, False)
             
             case Operation.BREAK:
-                input("Press any key to continue")
+                self.halt = True
                 return (a, False)
             
             case _:
@@ -221,6 +222,10 @@ class Emulator:
         if store_result:
             self.registers[i_output_register] = result
 
+    def execute_instructions(self):
+        while not self.halt:
+            self.execute_instruction()
+        self.halt = False
 
 # MAIN PROGRAM
 if __name__ == "__main__":
@@ -249,6 +254,9 @@ if __name__ == "__main__":
     try:
         while True:
             emulator.execute_instruction()
+            if emulator.halt:
+                input("Press any key to continue...")
+                emulator.halt = False
             if clock_time > 0:
                 time.sleep(clock_time)
     except KeyboardInterrupt:
