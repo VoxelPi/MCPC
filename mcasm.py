@@ -7,7 +7,8 @@ from dataclasses import dataclass
 
 ASSEMBLER_SYMBOLS = {
     "true": "1",
-    "false": "0"
+    "false": "0",
+    "rc": "r7"
 }
 
 def parse_register(text: str) -> bool:
@@ -169,6 +170,13 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
 
                 # UNCONDITONAL JUMP
                 if n_instruction_parts == 2:
+                    # To register value.
+                    if is_register_id(instruction_parts[1]):
+                        input_register = parse_register(instruction_parts[1])
+                        instructions[i_instruction] = opcode_exec_instruction(input_register, input_register, Register.PC, Operation.AND)
+                        continue
+
+                    # To immediate value.
                     value = int_or_none(instruction_parts[1])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for jump target: '{instruction_parts[1]}'")
@@ -192,6 +200,13 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
 
                 # UNCONDITONAL SKIP
                 if n_instruction_parts == 2:
+                    # By register value.
+                    if is_register_id(instruction_parts[1]):
+                        input_register = parse_register(instruction_parts[1])
+                        instructions[i_instruction] = opcode_exec_instruction(Register.PC, input_register, Register.PC, Operation.ADD)
+                        continue
+
+                    # By immediate value.
                     value = int_or_none(instruction_parts[1])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for skip length: '{instruction_parts[1]}'")
@@ -199,7 +214,7 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                     continue
 
                 # CONDITIONAL SKIP
-                if n_instruction_parts == 6 and instruction_parts[2] == "if" and instruction_parts[3] in ("r7", "rc") and instruction_parts[4] in condition_operators and instruction_parts[5] == '0':
+                if n_instruction_parts == 6 and instruction_parts[2] == "if" and instruction_parts[3] == "r7" and instruction_parts[4] in condition_operators and instruction_parts[5] == '0':
                     value = int_or_none(instruction_parts[1])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for skip length: '{instruction_parts[1]}'")
@@ -216,6 +231,13 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
 
                 # RELATIVE LOAD
                 if n_instruction_parts == 3:
+                    # By register value.
+                    if is_register_id(instruction_parts[2]):
+                        input_register = parse_register(instruction_parts[2])
+                        instructions[i_instruction] = opcode_exec_instruction(output_register, input_register, output_register, Operation.ADD)
+                        continue
+
+                    # By immediate value.
                     value = int_or_none(instruction_parts[2])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for load value: '{instruction_parts[2]}'") 
@@ -223,7 +245,7 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                     continue
 
                 # RELATIVE CONDITIONAL LOAD
-                if n_instruction_parts == 7 and instruction_parts[3] == "if" and instruction_parts[4] in ("r7", "rc") and instruction_parts[5] in condition_operators and instruction_parts[6] == '0':
+                if n_instruction_parts == 7 and instruction_parts[3] == "if" and instruction_parts[4] == "r7" and instruction_parts[5] in condition_operators and instruction_parts[6] == '0':
                     value = int_or_none(instruction_parts[2])
                     if value is None:
                         raise Exception(f"Failed to parse line {i_src_line}: Invalid syntax for load value: '{instruction_parts[2]}'")
