@@ -100,6 +100,9 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
     # Remove comments
     code_lines = np.array([line.split('#', 1)[0].strip() for line in src_lines])
 
+    if len(code_lines) == 0:
+        return AssembledProgram(np.zeros(256, dtype=np.uint16), src_lines, code_lines, dict(), dict())
+
     # Remove empty lines
     src_to_code_line = np.roll(np.cumsum(code_lines != ""), 1)
     src_to_code_line[0] = 0
