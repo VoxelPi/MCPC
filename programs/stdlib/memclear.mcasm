@@ -1,0 +1,10 @@
+R2 = read
+R1 = 0
+RC = R2
+
+@loop
+RC = dec RC
+[RC] = R1 # 0
+jump @loop if RC != 0
+
+write R2
