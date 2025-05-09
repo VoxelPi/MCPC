@@ -79,7 +79,7 @@ class Operation(Enum):
     DIVIDE = 49
     MODULO = 50
     SQRT = 51
-    UNDEFINED_04 = 52
+    RANDOM = 52
     UNDEFINED_05 = 53
     UNDEFINED_06 = 54
     UNDEFINED_07 = 55

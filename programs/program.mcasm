@@ -60,6 +60,7 @@ R3 = R4 * R5
 R3 = R4 / R5
 R3 = R4 % R5
 R3 = sqrt R4
+R3 = random
 
 break
 

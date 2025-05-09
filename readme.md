@@ -74,6 +74,7 @@ Instruction|Description
 `<out> = rotate right <a>`|Rotates the value of `a` one to the right (filling the msb with the lsb) and stores the value in `out`.
 `<out> = rotate left <a>`|Rotates the value of `a` one to the left (filling the lsb with the msb) and stores the value in `out`.
 `<out> = sqrt <a>`|Calculates the sqrt of `a` and stores it in `out`.
+`<out> = random`|Stores a random value in `out`.
 
 #### Bit
 Instruction|Description

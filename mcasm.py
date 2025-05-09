@@ -267,6 +267,11 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                 output_register = parse_register(instruction_parts[0])
                 # LOAD
                 if n_instruction_parts == 3:
+                    # RANDOM VALUE
+                    if instruction_parts[2] == "random":
+                        instructions[i_instruction] = opcode_exec_instruction(Register.R1, Register.R1, output_register, Operation.RANDOM)
+                        continue
+
                     # FROM ANOTHER REGISTER
                     if is_register_id(instruction_parts[2]):
                         input_register = parse_register(instruction_parts[2])
