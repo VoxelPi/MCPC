@@ -11,7 +11,7 @@ ASSEMBLER_SYMBOLS = {
     "rc": "r7"
 }
 
-def parse_register(text: str) -> bool:
+def parse_register(text: str) -> Register | None:
     if len(text) != 2:
         return None
     
@@ -24,7 +24,7 @@ def parse_register(text: str) -> bool:
         return list(Register)[int(text[1])]
     return None
     
-def is_register_id(text: str) -> Register | None:
+def is_register_id(text: str) -> bool:
     if len(text) != 2:
         return False
     
@@ -295,12 +295,12 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
                         continue
 
                     # FROM IO POLL
-                    if n_instruction_parts == 3 and instruction_parts[2] == "poll":
+                    if instruction_parts[2] == "poll":
                         instructions[i_instruction] = opcode_exec_instruction(output_register, output_register, output_register, Operation.IO_POLL)
                         continue
 
                     # FROM IO READ
-                    if n_instruction_parts == 3 and instruction_parts[2] == "read":
+                    if instruction_parts[2] == "read":
                         instructions[i_instruction] = opcode_exec_instruction(output_register, output_register, output_register, Operation.IO_READ)
                         continue
 
@@ -503,7 +503,7 @@ if __name__ == "__main__":
     input_filepath = pathlib.Path(input_filename)
     if output_filename is None:
         output_filename = f"{input_filepath.stem}.mcbin"
-    output_filepath = pathlib.Path(input_filepath.stem if (output_filename is None) else output_filename)
+    output_filepath = pathlib.Path(output_filename)
 
     # Read input lines
     with open(input_filepath, "r") as input_file:
