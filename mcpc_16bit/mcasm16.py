@@ -483,6 +483,6 @@ if __name__ == "__main__":
 
     # Write the output to a file.
     with open(output_filepath, "wb") as output_file:
-        program.binary.tofile(output_file, "")
+        output_file.write(program.binary.tobytes())
 
     print(f"Assembled {len(program.instructions)} instructions")

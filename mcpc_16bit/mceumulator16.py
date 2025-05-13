@@ -193,15 +193,24 @@ if __name__ == "__main__":
 
     # Read input lines
     input_filepath = pathlib.Path(input_filename)
-    with open(input_filepath, "r") as input_file:
-        src_lines = [line.strip() for line in input_file.readlines()]
+    if input_filepath.suffix == ".mcasm":
+        # Program is assembled source code.
+        with open(input_filepath, "r") as input_file:
+            src_lines = [line.strip() for line in input_file.readlines()]
 
-    # Assemble the program
-    program = mcasm16.assemble(src_lines)
-    print(f"Assembled {len(program.instructions)} instructions")
+        # Assemble the program
+        assembled_program = mcasm16.assemble(src_lines)
+        print(f"Assembled {len(assembled_program.instructions)} instructions")
+        program = assembled_program.binary
+    
+    else:
+        # Program is binary.
+        with open(input_filepath, "rb") as input_file:
+            program = np.frombuffer(input_file.read(), dtype=np.uint32)
+            print(f"Loaded {len(program)} instructions")
 
     emulator = Emulator()
-    emulator.load_program(program.binary)
+    emulator.load_program(program)
     try:
         while True:
             emulator.execute_instruction()
