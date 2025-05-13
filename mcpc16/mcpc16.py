@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 import numpy as np
 
@@ -106,6 +107,15 @@ class Condition(Enum):
     GREATER = 6
     LESS_OR_EQUAL = 7
 
+@dataclass
+class Instruction():
+    operation: Operation
+    condition_register: Register
+    condition: Condition
+    output_register: Register
+    a: Register | np.uint16
+    b: Register | np.uint16
+
 def operation_check(condition: Condition) -> Operation:
     return list(Operation)[Operation.CHECK_ALWAYS.value + condition.value]
 
@@ -125,7 +135,7 @@ def condition_source(register: Register) -> int:
         case _:
             raise Exception(f"Register {register} can't be used for conditions")
 
-def generate_opcode(
+def encode_instruction(
     operation: Operation, 
     condition_register: Register, 
     condition: Condition, 
@@ -157,3 +167,31 @@ def generate_opcode(
     opcode |= np.uint32(a_value) << 16 # A value
     opcode |= np.uint32(b_value) << 32 # B Value
     return np.uint32(opcode)
+
+def decode_instruction(instruction: np.uint32) -> Instruction:
+    # Decode a.
+    a_mode = ((instruction >> 0) & 0b1) != 0
+    if a_mode:
+        a = list(Register)[(instruction >> 16) & 0b1111]
+    else:
+        a = np.uint16((instruction >> 16) & 0xFFFF)
+
+    # Decode b.
+    b_mode = ((instruction >> 1) & 0b1) != 0
+    if b_mode:
+        b = list(Register)[(instruction >> 32) & 0b1111]
+    else:
+        b = np.uint16((instruction >> 32) & 0xFFFF)
+
+    # Decode output register.
+    output_register = list(Register)[(instruction >> 2) & 0b1111]
+
+    # Decode condition.
+    condition = list(Condition)[(instruction >> 6) & 0b111]
+    condition_source = list(Register)[Register.R14.value + ((instruction >> 9) & 0b1)]
+
+    # Decode operation.
+    operation = list(Operation)[((instruction >> 10) & 0b111111)]
+
+    # Return instruction.
+    return Instruction(operation, condition_source, condition, output_register, a, b)
