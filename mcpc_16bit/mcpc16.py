@@ -2,7 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 import numpy as np
 
-PROGRAM_MEMORY_SIZE = 0xFFFF
+REGISTER_COUNT = 0x10
+PROGRAM_MEMORY_SIZE = 0x10000
+MEMORY_SIZE = 0x10000
 
 class Register(Enum):
     PC = 0
@@ -23,8 +25,8 @@ class Register(Enum):
     R15 = 15
 
 class Operation(Enum):
-    A = 0
-    NOT_A = 1
+    CLEAR = 0
+    A = 1
     AND = 2
     NAND = 3
     OR = 4
