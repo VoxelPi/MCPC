@@ -6,5 +6,5 @@ A minecraft computer
 
 There are multiple architectures
 
-- [8bit Computer](./mcpc8/)
-- [16bit Computer](./mcpc16/)
+- [8bit Computer](./mcpc_8bit/)
+- [16bit Computer](./mcpc_16bit/)
