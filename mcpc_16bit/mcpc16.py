@@ -64,6 +64,10 @@ class Operation(Enum):
     UNDEFINED_29 = 29
     UNDEFINED_30 = 30
     UNDEFINED_31 = 31
+    UNDEFINED_32 = 32
+    UNDEFINED_33 = 33
+    UNDEFINED_34 = 34
+    UNDEFINED_35 = 35
 
     UNDEFINED_36 = 36
     UNDEFINED_37 = 37
@@ -186,6 +190,7 @@ def decode_instruction(instruction: np.uint64) -> Instruction:
     condition_source = list(Register)[Register.R14.value + ((instruction >> 9) & 0b1)]
 
     # Decode operation.
+    print(((instruction >> 10) & 0b111111))
     operation = list(Operation)[((instruction >> 10) & 0b111111)]
 
     # Return instruction.
