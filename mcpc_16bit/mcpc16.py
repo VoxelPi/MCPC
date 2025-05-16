@@ -190,7 +190,6 @@ def decode_instruction(instruction: np.uint64) -> Instruction:
     condition_source = list(Register)[Register.R14.value + ((instruction >> 9) & 0b1)]
 
     # Decode operation.
-    print(((instruction >> 10) & 0b111111))
     operation = list(Operation)[((instruction >> 10) & 0b111111)]
 
     # Return instruction.
