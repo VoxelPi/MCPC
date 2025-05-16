@@ -8,7 +8,7 @@ from mcpc16 import MEMORY_SIZE, PROGRAM_MEMORY_SIZE, REGISTER_COUNT, Condition, 
 import mcasm16
 
 class Emulator:
-    program = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint32)
+    program = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint64)
     registers = np.zeros(REGISTER_COUNT, dtype=np.uint16)
     memory = np.zeros(MEMORY_SIZE, dtype=np.uint16)
     halt: bool = False
@@ -31,7 +31,7 @@ class Emulator:
         self.registers = np.zeros(REGISTER_COUNT, dtype=np.uint16)
         self.memory = np.zeros(MEMORY_SIZE, dtype=np.uint16)
 
-    def load_program(self, program: npt.NDArray[np.uint32]):
+    def load_program(self, program: npt.NDArray[np.uint64]):
         np.copyto(self.program, program)
         self.initialize()
 
@@ -185,11 +185,11 @@ if __name__ == "__main__":
         prog="MCEMULATOR",
         description="Emulator for the MCPC",
     )
-    argument_parser.add_argument("filename")
+    argument_parser.add_argument("filename", nargs="?", default="./mcpc_16bit/programs/calculator.mcasm")
     argument_parser.add_argument("-t", "--time")
     arguments = argument_parser.parse_args()
     input_filename: str = arguments.filename
-    clock_time: float = float(arguments.time if arguments.time is not None else 0.0)
+    clock_time: float = float(arguments.time or 0.0)
 
     # Read input lines
     input_filepath = pathlib.Path(input_filename)
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     else:
         # Program is binary.
         with open(input_filepath, "rb") as input_file:
-            program = np.frombuffer(input_file.read(), dtype=np.uint32)
+            program = np.frombuffer(input_file.read(), dtype=np.uint64)
             print(f"Loaded {len(program)} instructions")
 
     emulator = Emulator()

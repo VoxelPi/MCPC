@@ -69,7 +69,7 @@ def is_value(text: str) -> bool:
 
 def parse_immediate_value(text: str) -> np.uint16 | None:
     try:
-        return np.uint16(np.int16(int(text, 0)).view(np.uint16))
+        return np.uint16(int(text, 0) & 0xFFFF)
     except ValueError:
         return None
 
@@ -123,7 +123,7 @@ no_args_instructions = {
 
 @dataclass
 class AssembledProgram():
-    binary: npt.NDArray[np.uint32]
+    binary: npt.NDArray[np.uint64]
     text: list[str]
     instructions: list[str]
     src_mapping: list[int] # Instruction id to code line.
@@ -133,7 +133,7 @@ class AssembledProgram():
     def n_instructions(self) -> int:
         return len(self.instructions)
 
-def _parse_instruction(instruction_text: str, i_instruction: int, source_line: str, i_source_line: int) -> np.uint32:
+def _parse_instruction(instruction_text: str, i_instruction: int, source_line: str, i_source_line: int) -> np.uint64:
     instruction_parts = instruction_text.split(" ")
     n_instruction_parts = len(instruction_parts)
 
@@ -380,7 +380,7 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
     code_lines = np.array([line.split('#', 1)[0].strip() for line in src_lines])
 
     if len(code_lines) == 0:
-        return AssembledProgram(np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint32), src_lines, code_lines.tolist(), [], {})
+        return AssembledProgram(np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint64), src_lines, code_lines.tolist(), [], {})
 
     # Remove empty lines
     src_to_code_line = np.roll(np.cumsum(code_lines != ""), 1)
@@ -389,6 +389,8 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
     for i, line in enumerate(src_to_code_line):
         code_line_mapping[line] = i
     code_lines = code_lines[code_line_mapping]
+    if code_lines[-1] == '':
+        code_lines = code_lines[:-1]
 
     # Remove multiple whitespace
     code_lines = [" ".join(line.split()).lower() for line in code_lines]
@@ -437,7 +439,7 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
             instructions_text = instructions_text.replace(symbol, value)
         instruction_lines = instructions_text.split("\n")
 
-    instructions = np.zeros(n_instructions, dtype=np.uint16)
+    instructions = np.zeros(n_instructions, dtype=np.uint64)
     for i_instruction, instruction_text in enumerate(instruction_lines):
         i_src_line = instruction_mapping[i_instruction]
         src_line = src_lines[i_src_line]
@@ -450,10 +452,13 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
             print(f"Exception whilst parsing line {i_src_line}: '{src_line}'.")
             raise exception
 
-    memory = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint32)
-    memory[0:n_instructions] = instructions[0:n_instructions]
+    return AssembledProgram(instructions, src_lines, instruction_lines, instruction_mapping, labels)
 
-    return AssembledProgram(memory, src_lines, instruction_lines, instruction_mapping, labels)
+def program_to_memory(instructions: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
+    n_instructions = len(instructions)
+    memory = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint64)
+    memory[0:n_instructions] = instructions[0:n_instructions]
+    return memory
 
 # MAIN PROGRAM
 if __name__ == "__main__":
@@ -462,7 +467,8 @@ if __name__ == "__main__":
         prog="MCASM",
         description="Assembler for the MCPC",
     )
-    argument_parser.add_argument("filename")
+    
+    argument_parser.add_argument("filename", nargs="?", default="./mcpc_16bit/programs/program.mcasm")
     argument_parser.add_argument("-o", "--output")
     arguments = argument_parser.parse_args()
     input_filename: str = arguments.filename

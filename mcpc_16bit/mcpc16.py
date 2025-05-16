@@ -144,33 +144,33 @@ def encode_instruction(
     output: Register, 
     a: Register | np.uint16 | int, 
     b: Register | np.uint16 | int,
-) -> np.uint32:
+) -> np.uint64:
     if isinstance(a, Register):
-        a_value = np.uint32(a.value)
-        a_mode = np.uint32(1)
+        a_value = np.uint64(a.value)
+        a_mode = np.uint64(1)
     else:
-        a_value = np.uint32(a)
-        a_mode = np.uint32(0)
+        a_value = np.uint64(a)
+        a_mode = np.uint64(0)
 
     if isinstance(b, Register):
-        b_value = np.uint32(b.value)
-        b_mode = np.uint32(1)
+        b_value = np.uint64(b.value)
+        b_mode = np.uint64(1)
     else:
-        b_value = np.uint32(b)
-        b_mode = np.uint32(0)
+        b_value = np.uint64(b)
+        b_mode = np.uint64(0)
     
-    opcode = np.uint32(0)
-    opcode |= np.uint32(a_mode) << 0 # A source
-    opcode |= np.uint32(b_mode) << 1 # B source
-    opcode |= np.uint32(output.value) << 2 # Output address
-    opcode |= np.uint32(condition.value) << 6 # Condition
-    opcode |= np.uint32(condition_source(condition_register) & 0b1) << 9 # Condition source
-    opcode |= np.uint32(operation.value) << 10 # Operation
-    opcode |= np.uint32(a_value) << 16 # A value
-    opcode |= np.uint32(b_value) << 32 # B Value
-    return np.uint32(opcode)
+    opcode = np.uint64(0)
+    opcode |= np.uint64(a_mode) << 0 # A source
+    opcode |= np.uint64(b_mode) << 1 # B source
+    opcode |= np.uint64(output.value) << 2 # Output address
+    opcode |= np.uint64(condition.value) << 6 # Condition
+    opcode |= np.uint64(condition_source(condition_register) & 0b1) << 9 # Condition source
+    opcode |= np.uint64(operation.value) << 10 # Operation
+    opcode |= np.uint64(a_value) << 16 # A value
+    opcode |= np.uint64(b_value) << 32 # B Value
+    return np.uint64(opcode)
 
-def decode_instruction(instruction: np.uint32) -> Instruction:
+def decode_instruction(instruction: np.uint64) -> Instruction:
     # Decode a.
     a_mode = ((instruction >> 0) & 0b1) != 0
     if a_mode:
