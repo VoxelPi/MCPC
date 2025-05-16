@@ -133,14 +133,14 @@ class Emulator:
                 return (self.stack[self.stack_pointer], True)
             case Operation.STACK_CALL:
                 self.stack_pointer += 1
-                self.stack[self.stack_pointer] = self.pc + 1
+                self.stack[self.stack_pointer & 0x1F] = self.pc + 1
                 return (b, True)
             case Operation.STACK_PUSH:
                 self.stack_pointer += 1
-                self.stack[self.stack_pointer] = a
+                self.stack[self.stack_pointer & 0x1F] = a
                 return (b, True)
             case Operation.STACK_POP:
-                value = self.stack[self.stack_pointer]
+                value = self.stack[self.stack_pointer & 0x1F]
                 self.stack_pointer -= 1
                 return (value, True)
             
