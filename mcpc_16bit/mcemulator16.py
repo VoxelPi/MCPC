@@ -4,13 +4,15 @@ import numpy.typing as npt
 import pathlib
 import time
 
-from mcpc16 import MEMORY_SIZE, PROGRAM_MEMORY_SIZE, REGISTER_COUNT, Condition, Operation, Register, decode_instruction
+from mcpc16 import MEMORY_SIZE, PROGRAM_MEMORY_SIZE, REGISTER_COUNT, STACK_SIZE, Condition, Operation, Register, decode_instruction
 import mcasm16
 
 class Emulator:
     program = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint64)
     registers = np.zeros(REGISTER_COUNT, dtype=np.uint16)
     memory = np.zeros(MEMORY_SIZE, dtype=np.uint16)
+    stack = np.zeros(STACK_SIZE, dtype=np.uint16)
+    stack_pointer = np.uint16(0xFFFF)
     halt: bool = False
 
     @property
@@ -30,6 +32,8 @@ class Emulator:
     def initialize(self):
         self.registers = np.zeros(REGISTER_COUNT, dtype=np.uint16)
         self.memory = np.zeros(MEMORY_SIZE, dtype=np.uint16)
+        self.stack = np.zeros(STACK_SIZE, dtype=np.uint16)
+        self.stack_pointer = np.uint16(0xFFFF)
 
     def load_program(self, program: npt.NDArray[np.uint64]):
         n_instructions = len(program)
@@ -92,9 +96,9 @@ class Emulator:
             case Operation.SHIFT_RIGHT:
                 return (np.uint16(a >> 1), True)
             case Operation.ROTATE_LEFT:
-                return (np.uint16((a << 1) | ((a >> 7) & 0b1)), True)
+                return (np.uint16((a << 1) | ((a >> 15) & 0b1)), True)
             case Operation.ROTATE_RIGHT:
-                return (np.uint16((a >> 1) | ((a & 0b1) << 7)), True)
+                return (np.uint16((a >> 1) | ((a & 0b1) << 15)), True)
             
             case Operation.BIT_GET:
                 return (np.uint16((a >> b) & 0b1 != 0), True)
@@ -114,10 +118,25 @@ class Emulator:
             case Operation.IO_POLL:
                 return (np.uint16(1), True) # TODO: Actually check if input is available
             case Operation.IO_READ:
-                return (np.uint16(int(input("[IO] Input a number: "), 0)), True)
+                return (np.uint16(int(input("[IO] Input a number: "), 0) & 0xFFFF), True)
             case Operation.IO_WRITE:
-                print(f"[IO] {a}")
+                print(f"[IO] {a} ({a.view(np.int16)})")
                 return (a, False) # Return the value
+            
+            case Operation.STACK_PEEK:
+                return (self.stack[self.stack_pointer], True)
+            case Operation.STACK_CALL:
+                self.stack_pointer += 1
+                self.stack[self.stack_pointer] = self.pc + 1
+                return (b, True)
+            case Operation.STACK_PUSH:
+                self.stack_pointer += 1
+                self.stack[self.stack_pointer] = a
+                return (b, True)
+            case Operation.STACK_POP:
+                value = self.stack[self.stack_pointer]
+                self.stack_pointer -= 1
+                return (value, True)
             
             case Operation.MULTIPLY:
                 return (a * b, True)

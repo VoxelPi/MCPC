@@ -5,6 +5,7 @@ import numpy as np
 REGISTER_COUNT = 0x10
 PROGRAM_MEMORY_SIZE = 0x10000
 MEMORY_SIZE = 0x10000
+STACK_SIZE = 32
 
 class Register(Enum):
     PC = 0

@@ -9,7 +9,8 @@ ASSEMBLER_SYMBOLS = {
     "true": "1",
     "false": "0",
     "c1": "r14",
-    "c2": "r15"
+    "c2": "r15",
+    "r0": "pc",
 }
 
 class AssemblySyntaxError(Exception):
