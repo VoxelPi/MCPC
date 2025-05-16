@@ -32,7 +32,9 @@ class Emulator:
         self.memory = np.zeros(MEMORY_SIZE, dtype=np.uint16)
 
     def load_program(self, program: npt.NDArray[np.uint64]):
-        np.copyto(self.program, program)
+        n_instructions = len(program)
+        self.program = np.zeros(PROGRAM_MEMORY_SIZE, np.uint64)
+        self.program[0:n_instructions] = program[0:n_instructions]
         self.initialize()
 
     def evaluate_condition(self, condition: Condition, value: np.uint16) -> bool:
@@ -93,23 +95,6 @@ class Emulator:
                 return (np.uint16((a << 1) | ((a >> 7) & 0b1)), True)
             case Operation.ROTATE_RIGHT:
                 return (np.uint16((a >> 1) | ((a & 0b1) << 7)), True)
-            
-            case Operation.CHECK_ALWAYS:
-                return (np.uint16(self.evaluate_condition(Condition.ALWAYS, a)), True)
-            case Operation.CHECK_NEVER:
-                return (np.uint16(self.evaluate_condition(Condition.NEVER, a)), True)
-            case Operation.CHECK_EQUAL:
-                return (np.uint16(self.evaluate_condition(Condition.EQUAL, a)), True)
-            case Operation.CHECK_NOT_EQUAL:
-                return (np.uint16(self.evaluate_condition(Condition.NOT_EQUAL, a)), True)
-            case Operation.CHECK_LESS:
-                return (np.uint16(self.evaluate_condition(Condition.LESS, a)), True)
-            case Operation.CHECK_GREATER_OR_EQUAL:
-                return (np.uint16(self.evaluate_condition(Condition.GREATER_OR_EQUAL, a)), True)
-            case Operation.CHECK_GREATER:
-                return (np.uint16(self.evaluate_condition(Condition.GREATER, a)), True)
-            case Operation.CHECK_LESS_OR_EQUAL:
-                return (np.uint16(self.evaluate_condition(Condition.LESS_OR_EQUAL, a)), True)
             
             case Operation.BIT_GET:
                 return (np.uint16((a >> b) & 0b1 != 0), True)
