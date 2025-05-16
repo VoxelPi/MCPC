@@ -118,7 +118,13 @@ class Emulator:
             case Operation.IO_POLL:
                 return (np.uint16(1), True) # TODO: Actually check if input is available
             case Operation.IO_READ:
-                return (np.uint16(int(input("[IO] Input a number: "), 0) & 0xFFFF), True)
+                while True:
+                    value = input("[IO] Input a number: ")
+                    try:
+                        return (np.uint16(int(value, 0) & 0xFFFF), True)
+                    except Exception:
+                        print(f"Invalid number input '{value}', please try again")
+                
             case Operation.IO_WRITE:
                 print(f"[IO] {a} ({a.view(np.int16)})")
                 return (a, False) # Return the value

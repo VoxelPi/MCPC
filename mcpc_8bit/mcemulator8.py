@@ -155,7 +155,12 @@ class Emulator:
             case Operation.IO_POLL:
                 return (np.uint8(1), True) # TODO: Actually check if input is available
             case Operation.IO_READ:
-                return (np.uint8(int(input("[IO] Input a number: "), 0)), True)
+                while True:
+                    value = input("[IO] Input a number: ")
+                    try:
+                        return (np.uint8(int(value, 0) & 0xFF), True)
+                    except Exception:
+                        print(f"Invalid number input '{value}', please try again")
             case Operation.IO_WRITE:
                 print(f"[IO] {a}")
                 return (a, False) # Return the value
