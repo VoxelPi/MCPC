@@ -18,7 +18,7 @@ write R6 # Output 0
 R1 = read
 R7 = R1 bit 7
 
-jump @store_number if RC = 0
+jump @store_number if C1 = 0
 
 # Pop the last two number of the stack, perform the calculation and push
 # The result on the stack.
@@ -32,7 +32,7 @@ jump @store_number if RC = 0
     R4 = [STACK_POINTER]
 
     # Check stack-underflow. If this happens, reset.
-    RC = STACK_POINTER
+    C1 = STACK_POINTER
     jump @reset if R7 < 0
 
     # Clear bit 7 of the input.
@@ -77,10 +77,10 @@ jump @store_number if RC = 0
     # Division, calculates a / b and pushes the result on the stack.
     @op_div
         R3 = 0
-        RC = R4
-        jump @store_result if RC <= 0
-            RC = RC - R5
-            jump @store_result if RC < 0
+        C1 = R4
+        jump @store_result if C1 <= 0
+            C1 = C1 - R5
+            jump @store_result if C1 < 0
             R3 = inc R3
             skip -3
         jump @store_result

@@ -1,15 +1,16 @@
 import argparse
 import numpy as np
+import numpy.typing as npt
 import pathlib
 import time
 
-from mcpc import *
-import mcasm
+from mcpc8 import PROGRAM_MEMORY_SIZE, REGISTER_COUNT, MEMORY_SIZE, Condition, Register, Operation
+import mcasm8 as mcasm8
 
 class Emulator:
     program = np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint16)
-    registers = np.zeros(8, dtype=np.uint8)
-    memory = np.zeros(256, dtype=np.uint8)
+    registers = np.zeros(REGISTER_COUNT, dtype=np.uint8)
+    memory = np.zeros(MEMORY_SIZE, dtype=np.uint8)
     accumulator = np.uint16(0)
     halt: bool = False
 
@@ -20,12 +21,18 @@ class Emulator:
     @pc.setter
     def pc(self, value: np.uint8):
         self.registers[0] = value
+    
+    def register_value(self, register: Register) -> np.uint8:
+        return self.registers[register.value]
+    
+    def set_register_value(self, register: Register, value: np.uint8):
+        self.registers[register.value] = value
 
     def initialize(self):
-        self.registers = np.zeros(8, dtype=np.uint8)
-        self.memory = np.zeros(256, dtype=np.uint8)
+        self.registers = np.zeros(REGISTER_COUNT, dtype=np.uint8)
+        self.memory = np.zeros(MEMORY_SIZE, dtype=np.uint8)
 
-    def load_program(self, program: np.uint16):
+    def load_program(self, program: npt.NDArray[np.uint16]):
         np.copyto(self.program, program)
         self.initialize()
 
@@ -80,64 +87,64 @@ class Emulator:
                 return (a - b, True)
             
             case Operation.SHIFT_LEFT:
-                return (a << 1, True)
+                return (np.uint8(a << 1), True)
             case Operation.SHIFT_RIGHT:
-                return (a >> 1, True)
+                return (np.uint8(a >> 1), True)
             case Operation.ROTATE_LEFT:
-                return ((a << 1) | ((a >> 7) & 0b1), True)
+                return (np.uint8((a << 1) | ((a >> 7) & 0b1)), True)
             case Operation.ROTATE_RIGHT:
-                return ((a >> 1) | ((a & 0b1) << 7), True)
+                return (np.uint8((a >> 1) | ((a & 0b1) << 7)), True)
             
             case Operation.CHECK_ALWAYS:
-                return (self.evaluate_condition(Condition.ALWAYS, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.ALWAYS, a)), True)
             case Operation.CHECK_NEVER:
-                return (self.evaluate_condition(Condition.NEVER, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.NEVER, a)), True)
             case Operation.CHECK_EQUAL:
-                return (self.evaluate_condition(Condition.EQUAL, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.EQUAL, a)), True)
             case Operation.CHECK_NOT_EQUAL:
-                return (self.evaluate_condition(Condition.NOT_EQUAL, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.NOT_EQUAL, a)), True)
             case Operation.CHECK_LESS:
-                return (self.evaluate_condition(Condition.LESS, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.LESS, a)), True)
             case Operation.CHECK_GREATER_OR_EQUAL:
-                return (self.evaluate_condition(Condition.GREATER_OR_EQUAL, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.GREATER_OR_EQUAL, a)), True)
             case Operation.CHECK_GREATER:
-                return (self.evaluate_condition(Condition.GREATER, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.GREATER, a)), True)
             case Operation.CHECK_LESS_OR_EQUAL:
-                return (self.evaluate_condition(Condition.LESS_OR_EQUAL, a), True)
+                return (np.uint8(self.evaluate_condition(Condition.LESS_OR_EQUAL, a)), True)
             
             case Operation.BIT_GET_0:
-                return ((a >> 0) & 0b1, True)
+                return (np.uint8((a >> 0) & 0b1), True)
             case Operation.BIT_GET_1:
-                return ((a >> 1) & 0b1, True)
+                return (np.uint8((a >> 1) & 0b1), True)
             case Operation.BIT_GET_2:
-                return ((a >> 2) & 0b1, True)
+                return (np.uint8((a >> 2) & 0b1), True)
             case Operation.BIT_GET_3:
-                return ((a >> 3) & 0b1, True)
+                return (np.uint8((a >> 3) & 0b1), True)
             case Operation.BIT_GET_4:
-                return ((a >> 4) & 0b1, True)
+                return (np.uint8((a >> 4) & 0b1), True)
             case Operation.BIT_GET_5:
-                return ((a >> 5) & 0b1, True)
+                return (np.uint8((a >> 5) & 0b1), True)
             case Operation.BIT_GET_6:
-                return ((a >> 6) & 0b1, True)
+                return (np.uint8((a >> 6) & 0b1), True)
             case Operation.BIT_GET_7:
-                return ((a >> 7) & 0b1, True)
+                return (np.uint8((a >> 7) & 0b1), True)
             
             case Operation.BIT_SET_0:
-                return ((b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 0), True)
+                return (np.uint8((b & ~(np.uint8(1) << 0)) | (np.uint8(0 if (a == 0) else 1) << 0)), True)
             case Operation.BIT_SET_1:
-                return ((b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 1), True)
+                return (np.uint8((b & ~(np.uint8(1) << 1)) | (np.uint8(0 if (a == 0) else 1) << 1)), True)
             case Operation.BIT_SET_2:
-                return ((b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 2), True)
+                return (np.uint8((b & ~(np.uint8(1) << 2)) | (np.uint8(0 if (a == 0) else 1) << 2)), True)
             case Operation.BIT_SET_3:
-                return ((b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 3), True)
+                return (np.uint8((b & ~(np.uint8(1) << 3)) | (np.uint8(0 if (a == 0) else 1) << 3)), True)
             case Operation.BIT_SET_4:
-                return ((b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 4), True)
+                return (np.uint8((b & ~(np.uint8(1) << 4)) | (np.uint8(0 if (a == 0) else 1) << 4)), True)
             case Operation.BIT_SET_5:
-                return ((b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 5), True)
+                return (np.uint8((b & ~(np.uint8(1) << 5)) | (np.uint8(0 if (a == 0) else 1) << 5)), True)
             case Operation.BIT_SET_6:
-                return ((b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 6), True)
+                return (np.uint8((b & ~(np.uint8(1) << 6)) | (np.uint8(0 if (a == 0) else 1) << 6)), True)
             case Operation.BIT_SET_7:
-                return ((b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 7), True)
+                return (np.uint8((b & ~(np.uint8(1) << 7)) | (np.uint8(0 if (a == 0) else 1) << 7)), True)
 
             case Operation.MEMORY_LOAD:
                 return (self.memory[a], True)
@@ -146,7 +153,7 @@ class Emulator:
                 return (b, False) # Return the value
             
             case Operation.IO_POLL:
-                return (True, True) # TODO: Actually check if input is available
+                return (np.uint8(1), True) # TODO: Actually check if input is available
             case Operation.IO_READ:
                 return (np.uint8(int(input("[IO] Input a number: "), 0)), True)
             case Operation.IO_WRITE:
@@ -160,7 +167,7 @@ class Emulator:
             case Operation.MODULO:
                 return (a % b, True)
             case Operation.SQRT:
-                return (int(np.sqrt(a)), True)
+                return (np.uint8(np.sqrt(a)), True)
             
             case Operation.MULTIPLY_ACCUMULATE:
                 self.accumulator += np.uint8(a * b)
@@ -182,7 +189,7 @@ class Emulator:
 
     def execute_instruction(self):
         # Fetch instruction
-        instruction = self.program[self.pc]
+        instruction: np.uint16 = self.program[self.pc]
 
         # Execute instruction
         i_output_register = (instruction >> 12) & 0b111
@@ -246,7 +253,7 @@ if __name__ == "__main__":
         src_lines = [line.strip() for line in input_file.readlines()]
 
     # Assemble the program
-    program = mcasm.assemble(src_lines)
+    program = mcasm8.assemble(src_lines)
     print(f"Assembled {len(program.instructions)} instructions")
 
     emulator = Emulator()

@@ -10,10 +10,10 @@
 # Load program
 R6 = 255 # Number of instructions
 @program_input
-    R7 = read
+    C1 = read
     R6 = inc R6
-    [R6] = R7
-    jump @program_input if R7 != 0
+    [R6] = C1
+    jump @program_input if C1 != 0
 
 # Output number of instructions
 @program_input_finished
@@ -77,11 +77,11 @@ jump @op_loop_end
 # Loop start instruction, '['
 @op_loop_start
     # Enter the loop if the current value is != 0.
-    RC = R3
-    jump @post_instruction if RC != 0
+    C1 = R3
+    jump @post_instruction if C1 != 0
 
     # Find the matching bracket.
-    RC = 1 # Initialize loop counter
+    C1 = 1 # Initialize loop counter
     @loop_start_search_start
         R6 = inc R6
         R4 = [R6]
@@ -99,22 +99,22 @@ jump @op_loop_end
         jump @loop_start_search_close
 
         @loop_start_search_open
-            RC = inc RC
+            C1 = inc C1
             jump @loop_start_search_start
 
         @loop_start_search_close
-            RC = dec RC
-            jump @loop_start_search_start if RC != 0
+            C1 = dec C1
+            jump @loop_start_search_start if C1 != 0
             jump @post_instruction 
 
 # Loop end instruction, ']'
 @op_loop_end
     # Break the loop if the current value is 0.
-    RC = R3
-    jump @post_instruction if RC = 0
+    C1 = R3
+    jump @post_instruction if C1 = 0
 
     # Find the matching bracket.
-    RC = 1 # Initialize loop counter
+    C1 = 1 # Initialize loop counter
     @loop_end_search_start
         R6 = dec R6
         R4 = [R6]
@@ -132,12 +132,12 @@ jump @op_loop_end
         jump @loop_end_search_close
 
         @loop_end_search_open
-            RC = dec RC
-            jump @loop_end_search_start if RC != 0
+            C1 = dec C1
+            jump @loop_end_search_start if C1 != 0
             jump @post_instruction 
 
         @loop_end_search_close
-            RC = inc RC
+            C1 = inc C1
             jump @loop_end_search_start
 
 @post_instruction

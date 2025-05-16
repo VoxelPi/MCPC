@@ -1,7 +1,9 @@
 from enum import Enum
 import numpy as np
 
-PROGRAM_MEMORY_SIZE = 256
+REGISTER_COUNT = 0x8
+PROGRAM_MEMORY_SIZE = 0x100
+MEMORY_SIZE = 0x100
 
 class InstructionType(Enum):
     LOAD = 0b0000_0000_0000_0000
@@ -105,8 +107,20 @@ class Condition(Enum):
 def operation_check(condition: Condition) -> Operation:
     return list(Operation)[Operation.CHECK_ALWAYS.value + condition.value]
 
-def opcode_load_instruction(relative: bool, condition: Condition, output_reg: Register, value: int) -> np.uint16:
-    return np.uint16(InstructionType.LOAD.value | (output_reg.value << 12) | (condition.value << 9) | ((1 if relative else 0) << 8) | (value & 0xFF))
+def encode_load_instruction(relative: bool, condition: Condition, output_reg: Register, value: np.uint8) -> np.uint16:
+    opcode = np.uint16(0)
+    opcode |= np.uint16(InstructionType.LOAD.value)
+    opcode |= np.uint16(output_reg.value) << 12
+    opcode |= np.uint16(condition.value) << 9
+    opcode |= np.uint16(relative) << 8
+    opcode |= np.uint16(value & 0xFF)
+    return np.uint16(opcode)
 
-def opcode_exec_instruction(input_a_reg: Register, input_b_reg: Register, output_reg: Register, operation: Operation) -> np.uint16:
-    return np.uint16(InstructionType.EXEC.value | (output_reg.value << 12) | (input_b_reg.value << 9) | (input_a_reg.value << 6) | operation.value)
+def encode_operation_instruction(input_a_reg: Register, input_b_reg: Register, output_reg: Register, operation: Operation) -> np.uint16:
+    opcode = np.uint16(0)
+    opcode |= np.uint16(InstructionType.EXEC.value)
+    opcode |= np.uint16(output_reg.value) << 12
+    opcode |= np.uint16(input_b_reg.value) << 9
+    opcode |= np.uint16(input_a_reg.value) << 6
+    opcode |= np.uint16(operation.value & 0b111111)
+    return np.uint16(opcode)
