@@ -1,6 +1,9 @@
 R7 = 0x8001
 R8 = 1
 
+!define $vec1 R6
+$vec1 = 0 
+
 @loop
 # R3 = 1 + 0x7FFF
 R3 = 1 - 0x8001

@@ -462,15 +462,16 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
 
     if len(instruction_lines) > 0:
         # Replace used labels
-        instructions_text = "\n".join(instruction_lines)
+        instructions_text = "\n".join([f" {line} " for line in instruction_lines])
         for label, instruction_id in labels.items():
-            instructions_text = instructions_text.replace(f"@{label}", f"{instruction_id}")
+            instructions_text = instructions_text.replace(f" @{label} ", f" {instruction_id} ")
 
         # Replace symbols
         symbols = ASSEMBLER_SYMBOLS | macro_symbols
         for symbol, value in symbols.items():
-            instructions_text = instructions_text.replace(symbol, value)
+            instructions_text = instructions_text.replace(f" {symbol} ", f" {value} ")
         instruction_lines = instructions_text.split("\n")
+        instruction_lines = [ line.strip() for line in instruction_lines ]
 
     instructions = np.zeros(n_instructions, dtype=np.uint64)
     for i_instruction, instruction_text in enumerate(instruction_lines):
