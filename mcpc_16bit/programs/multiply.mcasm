@@ -1,6 +1,6 @@
 R1 = read # A
 R2 = read # B
-call @multiply
+call @multiply_swap
 
 write R3
 break
