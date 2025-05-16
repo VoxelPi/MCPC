@@ -8,8 +8,8 @@ break
 jump 0
 
 
-# Input A in R1
-# Input B in R2
+# Input A in R1 (destroyed)
+# Input B in R2 (destroyed)
 # Output in R3
 # Uses C1
 @multiply_swap
@@ -20,8 +20,8 @@ R1 = R2
 R2 = R3
 
 # Faster if A > B
-# Input A in R1
-# Input B in R2
+# Input A in R1 (destroyed)
+# Input B in R2 (destroyed)
 # Output in R3
 # Uses C1
 @multiply
