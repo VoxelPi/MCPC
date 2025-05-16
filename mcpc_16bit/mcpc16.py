@@ -44,30 +44,26 @@ class Operation(Enum):
     ROTATE_LEFT = 14
     ROTATE_RIGHT = 15
 
-    CHECK_ALWAYS = 16
-    CHECK_NEVER = 17
-    CHECK_EQUAL = 18
-    CHECK_NOT_EQUAL = 19
-    CHECK_LESS = 20
-    CHECK_GREATER_OR_EQUAL = 21
-    CHECK_GREATER = 22
-    CHECK_LESS_OR_EQUAL = 23
+    MEMORY_LOAD = 16
+    MEMORY_STORE = 17
 
-    MEMORY_LOAD = 24
-    MEMORY_STORE = 25
+    IO_POLL = 18
+    IO_READ = 19
+    IO_WRITE = 20
 
-    IO_POLL = 26
-    IO_READ = 27
-    IO_WRITE = 28
+    STACK_PUSH = 21
+    STACK_PEEK = 22
+    STACK_POP = 23
 
-    STACK_PUSH = 29
-    STACK_PEEK = 30
-    STACK_POP = 31
+    BIT_GET = 24
+    BIT_SET = 25
+    BIT_CLEAR = 26
+    BIT_TOGGLE = 27
 
-    BIT_GET = 32
-    BIT_SET = 33
-    BIT_CLEAR = 34
-    BIT_TOGGEL = 35
+    UNDEFINED_28 = 28
+    UNDEFINED_29 = 29
+    UNDEFINED_30 = 30
+    UNDEFINED_31 = 31
 
     UNDEFINED_36 = 36
     UNDEFINED_37 = 37
@@ -117,9 +113,6 @@ class Instruction():
     output_register: Register
     a: Register | np.uint16
     b: Register | np.uint16
-
-def operation_check(condition: Condition) -> Operation:
-    return list(Operation)[Operation.CHECK_ALWAYS.value + condition.value]
 
 def is_valid_condition_source(register: Register) -> bool:
     match register:

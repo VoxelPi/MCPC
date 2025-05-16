@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 import pathlib
-from mcpc16 import Register, Condition, Operation, encode_instruction, PROGRAM_MEMORY_SIZE, operation_check
+from mcpc16 import Register, Condition, Operation, encode_instruction, PROGRAM_MEMORY_SIZE
 import argparse
 from dataclasses import dataclass
 
@@ -163,6 +163,10 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         condition_register = Register.R14
         condition = Condition.ALWAYS
 
+    # RETURN
+    if instruction_text == "return":
+        return encode_instruction(Operation.STACK_POP, condition_register, condition, Register.PC, 0, 0)
+
     # NO ARGS
     if instruction_text in no_args_instructions:
         operation = no_args_instructions[instruction_text]
@@ -201,7 +205,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         # Get the output register
         output_register = parse_register(instruction_parts[0])
         if output_register is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid register id '{instruction_parts[0]}'.")
+            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid register '{instruction_parts[0]}'.")
 
         # LOAD
         if n_instruction_parts == 3:
@@ -230,6 +234,14 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
             # io read, '<r> = read'
             if value_text == "read":
                 return encode_instruction(Operation.IO_READ, condition_register, condition, output_register, 0, 0)
+            
+            # stack peek, '<r> = peek'
+            if value_text == "peek":
+                return encode_instruction(Operation.STACK_PEEK, condition_register, condition, output_register, 0, 0)
+            
+            # stack pop, '<r> = pop'
+            if value_text == "pop":
+                return encode_instruction(Operation.STACK_POP, condition_register, condition, output_register, 0, 0)
 
             # Unsupported load value.
             raise AssemblySyntaxError(i_source_line, source_line, f"Invalid load value: '{value_text}'.")
@@ -267,25 +279,25 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                 case _:
                     raise AssemblySyntaxError(i_source_line, source_line, f"Invalid rotation direction '{instruction_parts[3]}'.")
 
-        # CHECK
-        if n_instruction_parts == 6 and instruction_parts[2] == "check":
-            # Parse value.
-            value = parse_value(instruction_parts[3])
-            if value is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[4]}'.")
+        # # CHECK
+        # if n_instruction_parts == 6 and instruction_parts[2] == "check":
+        #     # Parse value.
+        #     value = parse_value(instruction_parts[3])
+        #     if value is None:
+        #         raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[4]}'.")
 
-            # Parse condition operator.
-            if instruction_parts[4] not in condition_operators:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition '{instruction_parts[4]}' for check.")
-            condition = condition_operators[instruction_parts[4]]
-            operation = operation_check(condition)
+        #     # Parse condition operator.
+        #     if instruction_parts[4] not in condition_operators:
+        #         raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition '{instruction_parts[4]}' for check.")
+        #     condition = condition_operators[instruction_parts[4]]
+        #     operation = operation_check(condition)
 
-            # Check 0 argument.
-            if instruction_parts[5] != "0":
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition '{instruction_parts[4]} {instruction_parts[5]}' for check.")
+        #     # Check 0 argument.
+        #     if instruction_parts[5] != "0":
+        #         raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition '{instruction_parts[4]} {instruction_parts[5]}' for check.")
             
-            # Encode instruction.
-            return encode_instruction(operation, condition_register, condition, output_register, value, 0)
+        #     # Encode instruction.
+        #     return encode_instruction(operation, condition_register, condition, output_register, value, 0)
         
         # Bit operation, '<r> = <value> bit <operation> <bit>'
         if n_instruction_parts == 6 and instruction_parts[3] == "bit":
@@ -308,8 +320,8 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                     return encode_instruction(Operation.BIT_SET, condition_register, condition, output_register, value, bit)
                 case "clear":
                     return encode_instruction(Operation.BIT_CLEAR, condition_register, condition, output_register, value, bit)
-                case "toggel":
-                    return encode_instruction(Operation.BIT_TOGGEL, condition_register, condition, output_register, value, bit)
+                case "toggle":
+                    return encode_instruction(Operation.BIT_TOGGLE, condition_register, condition, output_register, value, bit)
                 case _:
                     raise AssemblySyntaxError(i_source_line, source_line, f"Invalid bit operation '{bit_operation}'.")
 
@@ -361,6 +373,26 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
     
         # Encode instruction.
         return encode_instruction(Operation.MEMORY_STORE, condition_register, Condition.NEVER, Register.R1, address, value)
+
+    # Stack push, 'push <value>'
+    if n_instruction_parts == 2 and instruction_parts[0] == "push":
+        # Parse value.
+        value = parse_value(instruction_parts[1])
+        if value is None:
+            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{value}'.")
+
+        # Encode instruction.
+        return encode_instruction(Operation.STACK_PUSH, condition_register, Condition.NEVER, Register.R1, value, 0)
+
+    # Call, 'call <address>'
+    if n_instruction_parts == 2 and instruction_parts[0] == "push":
+        # Parse value.
+        value = parse_value(instruction_parts[1])
+        if value is None:
+            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{value}'.")
+
+        # Encode instruction.
+        return encode_instruction(Operation.STACK_PUSH, condition_register, condition, Register.PC, Register.PC, value)
 
     # IO WRITE, 'write <value>'
     if n_instruction_parts == 2 and instruction_parts[0] == "write":

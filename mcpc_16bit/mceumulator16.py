@@ -117,7 +117,7 @@ class Emulator:
                 return (a | (np.uint16(1) << b), True)
             case Operation.BIT_CLEAR:
                 return (a & ~(np.uint16(1) << b), True)
-            case Operation.BIT_TOGGEL:
+            case Operation.BIT_TOGGLE:
                 return (a ^ (np.uint16(1) << b), True)
 
             case Operation.MEMORY_LOAD:
