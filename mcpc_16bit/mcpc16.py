@@ -51,16 +51,16 @@ class Operation(Enum):
     IO_READ = 19
     IO_WRITE = 20
 
-    STACK_PUSH = 21
-    STACK_PEEK = 22
-    STACK_POP = 23
+    STACK_PEEK = 21
+    STACK_CALL = 22
+    STACK_PUSH = 23
+    STACK_POP = 24
 
-    BIT_GET = 24
-    BIT_SET = 25
-    BIT_CLEAR = 26
-    BIT_TOGGLE = 27
+    BIT_GET = 25
+    BIT_SET = 26
+    BIT_CLEAR = 27
+    BIT_TOGGLE = 28
 
-    UNDEFINED_28 = 28
     UNDEFINED_29 = 29
     UNDEFINED_30 = 30
     UNDEFINED_31 = 31

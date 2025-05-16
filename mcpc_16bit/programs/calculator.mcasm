@@ -17,6 +17,7 @@ write 0
 @read_input
 R1 = read
 C1 = R1 bit get 7
+# C1 = R1 and 0x8000
 
 jump @store_number if C1 = 0
 
@@ -37,6 +38,7 @@ jump @store_number if C1 = 0
 
     # Clear bit 7 of the input.
     R1 = R1 bit clear 15
+    # R1 = R1 and 0x7FFF
     R1 = inc R1
 
     # Goto operation

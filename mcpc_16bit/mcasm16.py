@@ -385,14 +385,14 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         return encode_instruction(Operation.STACK_PUSH, condition_register, Condition.NEVER, Register.R1, value, 0)
 
     # Call, 'call <address>'
-    if n_instruction_parts == 2 and instruction_parts[0] == "push":
+    if n_instruction_parts == 2 and instruction_parts[0] == "call":
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
             raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{value}'.")
 
         # Encode instruction.
-        return encode_instruction(Operation.STACK_PUSH, condition_register, condition, Register.PC, Register.PC, value)
+        return encode_instruction(Operation.STACK_CALL, condition_register, condition, Register.PC, Register.PC, value)
 
     # IO WRITE, 'write <value>'
     if n_instruction_parts == 2 and instruction_parts[0] == "write":
