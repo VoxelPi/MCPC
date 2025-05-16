@@ -126,7 +126,7 @@ class Emulator:
                         print(f"Invalid number input '{value}', please try again")
                 
             case Operation.IO_WRITE:
-                print(f"[IO] {a} ({a.view(np.int16)})")
+                print(f"[IO] uint16: {a} | int16: {a.view(np.int16)}")
                 return (a, False) # Return the value
             
             case Operation.STACK_PEEK:
