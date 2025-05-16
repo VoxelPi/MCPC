@@ -1,4 +1,5 @@
 import argparse
+import warnings
 import numpy as np
 import numpy.typing as npt
 import pathlib
@@ -200,6 +201,9 @@ if __name__ == "__main__":
     arguments = argument_parser.parse_args()
     input_filename: str = arguments.filename
     clock_time: float = float(arguments.time or 0.0)
+
+    # Disable numpy warnings
+    warnings.filterwarnings("ignore")
 
     # Read input lines
     input_filepath = pathlib.Path(input_filename)
