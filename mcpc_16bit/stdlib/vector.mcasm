@@ -1,0 +1,30 @@
+# Uses C1
+# Base pointer R1
+# Length R2
+@stdlib:vector/zeroes
+{
+    C1 = R2
+    {
+        [R1] = 0
+        R1 = inc R1
+        C1 = dec C1
+        repeat if C1 != 0
+    }
+    return
+}
+
+# Uses C1
+# Base pointer R1
+# Length R2
+@stdlib:vector/range
+{
+    C1 = R2
+    R1 = R1 + R2
+    {
+        R1 = dec R1
+        C1 = dec C1
+        [R1] = C1
+        repeat if C1 != 0
+    }
+    return
+}
