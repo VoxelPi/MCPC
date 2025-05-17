@@ -843,13 +843,47 @@ def assemble(
             instruction.text = instruction.text.replace(f"[@{label.name}]", f"[{label.location}]")
 
         # Check for unresolved labels.
-        if " @" in instruction.text or "[@" in instruction.text:
-            raise AssemblyError(instruction.source, "Unable to resolve label.")
+        if " @" in instruction.text:
+            i_label_start = instruction.text.index(" @") + 1
+            if " " in instruction.text[i_label_start:]:
+                i_label_end = instruction.text[i_label_start:].index(" ")
+                label_id = instruction.text[i_label_start:(i_label_end + i_label_start)]
+            else:
+                label_id = instruction.text[i_label_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve label '{label_id}'.")
+
+        if "[@" in instruction.text:
+            i_label_start = instruction.text.index("[@") + 1
+            if " " in instruction.text[i_label_start:]:
+                i_label_end = instruction.text[i_label_start:].index(" ")
+                label_id = instruction.text[i_label_start:(i_label_end + i_label_start)]
+            else:
+                label_id = instruction.text[i_label_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve label '{label_id}'.")
 
         # Apply macros.
         for macro in instruction.scope.visible_macros().values():
             instruction.text = instruction.text.replace(f" {macro.name} ", f" {macro.value} ")
             instruction.text = instruction.text.replace(f"[{macro.name}]", f"[{macro.value}]")
+
+        # Check for unresolved macros.
+        if " $" in instruction.text:
+            i_macro_start = instruction.text.index(" $") + 1
+            if " " in instruction.text[i_macro_start:]:
+                i_macro_end = instruction.text[i_macro_start:].index(" ")
+                macro_id = instruction.text[i_macro_start:(i_macro_end + i_macro_start)]
+            else:
+                macro_id = instruction.text[i_macro_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve macro '{macro_id}'.")
+        
+        if "[$" in instruction.text:
+            i_macro_start = instruction.text.index("[$") + 1
+            if "]" in instruction.text[i_macro_start:]:
+                i_macro_end = instruction.text[i_macro_start:].index(" ")
+                macro_id = instruction.text[i_macro_start:(i_macro_end + i_macro_start)]
+            else:
+                macro_id = instruction.text[i_macro_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve macro '{macro_id}'.")
             
         # Remove previously added whitespace.
         instruction.text = instruction.text[1:-1]
