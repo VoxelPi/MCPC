@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 import numpy as np
 import numpy.typing as npt
@@ -6,7 +7,9 @@ from mcpc16 import Register, Condition, Operation, encode_instruction, PROGRAM_M
 import argparse
 from dataclasses import dataclass
 
-ASSEMBLER_SYMBOLS = {
+START_LABEL = "start"
+
+ASSEMBLER_MACROS = {
     "true": "1",
     "false": "0",
     "c1": "r14",
@@ -14,16 +17,32 @@ ASSEMBLER_SYMBOLS = {
     "r0": "pc",
 }
 
-class AssemblySyntaxError(Exception):
-    i_source_line: int
-    source_line: str
+class AssemblyError(Exception):
+    source_line: AssemblySourceLine
     message: str
 
-    def __init__(self, i_source_line: int, source_line: str, message: str):
-        super().__init__(f"Failed to parse line {i_source_line + 1} '{source_line}'. {message}")
-        self.i_source_line = i_source_line
+    def __init__(self, source_line: AssemblySourceLine, message: str):
+        super().__init__(f"Failed to parse line {source_line.line + 1} of unit '{source_line.unit}': '{source_line.text}'.\n{message}")
         self.source_line = source_line
         self.message = message
+
+class AssemblySyntaxError(Exception):
+    source_line: AssemblySourceLine
+    message: str
+
+    def __init__(self, source_line: AssemblySourceLine, message: str):
+        super().__init__(f"Failed to parse line {source_line.line + 1} of unit '{source_line.unit}': '{source_line.text}'.\n{message}")
+        self.source_line = source_line
+        self.message = message
+
+class AssemblyIncludeError(Exception):
+    source_line: AssemblySourceLine
+    target: str
+
+    def __init__(self, source_line: AssemblySourceLine, target: str):
+        super().__init__(f"Failed to resolve included unit '{target}' in line {source_line.line + 1} of unit '{source_line.unit}'.")
+        self.source_line = source_line
+        self.target = target
 
 def parse_register(text: str) -> Register | None:  
     text = text.upper()
@@ -124,18 +143,43 @@ no_args_instructions = {
 }
 
 @dataclass
+class AssemblyLabel():
+    name: str
+    location: int
+    source: AssemblySourceLine | None
+
+@dataclass
+class AssemblyMacro():
+    name: str
+    value: str
+    source: AssemblySourceLine | None
+
+@dataclass
+class AssemblySourceLine():
+    unit: str
+    line: int
+    text: str
+
+@dataclass
+class AssemblyInstruction():
+    source: AssemblySourceLine
+    text: str
+
+@dataclass
 class AssembledProgram():
     binary: npt.NDArray[np.uint64]
     text: list[str]
-    instructions: list[str]
-    src_mapping: list[int] # Instruction id to code line.
-    labels: dict[str, int]
+    instructions: list[AssemblyInstruction]
+    labels: dict[str, AssemblyLabel]
+    macros: dict[str, AssemblyMacro]
 
     @property
     def n_instructions(self) -> int:
         return len(self.instructions)
 
-def _parse_instruction(instruction_text: str, i_instruction: int, source_line: str, i_source_line: int) -> np.uint64:
+def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
+    source_line = instruction_line.source
+    instruction_text = instruction_line.text
     instruction_parts = instruction_text.split(" ")
     n_instruction_parts = len(instruction_parts)
 
@@ -149,17 +193,17 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
 
         # Check general condition syntax.
         if n_condition_parts != 3 or condition_parts[2] != "0":
-            raise AssemblySyntaxError(i_source_line, source_line, "Invalid condition syntax. Should be 'if <register> <condition> 0'.")
+            raise AssemblySyntaxError(source_line, "Invalid condition syntax. Should be 'if <register> <condition> 0'.")
         
         # Get condition.
         if condition_parts[1] not in condition_operators:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition operator '{condition_parts[1]}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid condition operator '{condition_parts[1]}'.")
         condition = condition_operators[condition_parts[1]]
 
         # Get condition source register.
         condition_register = parse_register(condition_parts[0])
         if condition_register is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition source register '{condition_parts[0]}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid condition source register '{condition_parts[0]}'.")
 
     else:
         condition_register = Register.R14
@@ -178,12 +222,12 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
     if instruction_parts[0] == 'jump':
         # Check general syntax.
         if n_instruction_parts != 2:
-            raise AssemblySyntaxError(i_source_line, source_line, "Invalid syntax for jump. Should be 'jump <register|immediate>'.")
+            raise AssemblySyntaxError(source_line, "Invalid syntax for jump. Should be 'jump <register|immediate>'.")
 
         # Parse the jump target value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid jump target '{instruction_parts[1]}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid jump target '{instruction_parts[1]}'.")
         
         # Encode instruction.
         return encode_instruction(Operation.A, condition_register, condition, Register.PC, value, 0)
@@ -192,12 +236,12 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
     if instruction_parts[0] == 'skip':
         # Check general syntax.
         if n_instruction_parts != 2:
-            raise AssemblySyntaxError(i_source_line, source_line, "Invalid syntax for skip. Should be 'skip <register|immediate>'.")
+            raise AssemblySyntaxError(source_line, "Invalid syntax for skip. Should be 'skip <register|immediate>'.")
 
         # Parse the skip value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid skip length '{instruction_parts[1]}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid skip length '{instruction_parts[1]}'.")
         
         # Encode instruction.
         return encode_instruction(Operation.ADD, condition_register, condition, Register.PC, value, Register.PC)
@@ -207,7 +251,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         # Get the output register
         output_register = parse_register(instruction_parts[0])
         if output_register is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid register '{instruction_parts[0]}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid register '{instruction_parts[0]}'.")
 
         # LOAD
         if n_instruction_parts == 3:
@@ -224,7 +268,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                 address_text = value_text[1:-1]
                 address = parse_value(address_text)
                 if address is None:
-                    raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value for memory address: '{address_text}'.")
+                    raise AssemblySyntaxError(source_line, f"Invalid value for memory address: '{address_text}'.")
 
                 # Encode instruction.
                 return encode_instruction(Operation.MEMORY_LOAD, condition_register, condition, output_register, address, 0)
@@ -246,7 +290,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                 return encode_instruction(Operation.STACK_POP, condition_register, condition, output_register, 0, 0)
 
             # Unsupported load value.
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid load value: '{value_text}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid load value: '{value_text}'.")
 
         # SHIFT
         # TODO: shift count?
@@ -254,7 +298,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
             # Parse value.
             value = parse_value(instruction_parts[4])
             if value is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[4]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid value '{instruction_parts[4]}'.")
 
             # Parse direction.
             match instruction_parts[3]:
@@ -263,14 +307,14 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                 case "right":
                     return encode_instruction(Operation.SHIFT_RIGHT, condition_register, condition, output_register, value, 1)
                 case _:
-                    raise AssemblySyntaxError(i_source_line, source_line, f"Invalid shift direction '{instruction_parts[3]}'.")
+                    raise AssemblySyntaxError(source_line, f"Invalid shift direction '{instruction_parts[3]}'.")
         
         # ROTATE
         if n_instruction_parts == 5 and instruction_parts[2] == "rotate":
             # Parse value.
             value = parse_value(instruction_parts[4])
             if value is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[4]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid value '{instruction_parts[4]}'.")
 
             # Parse direction.
             match instruction_parts[3]:
@@ -279,39 +323,19 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                 case "right":
                     return encode_instruction(Operation.ROTATE_RIGHT, condition_register, condition, output_register, value, 1)
                 case _:
-                    raise AssemblySyntaxError(i_source_line, source_line, f"Invalid rotation direction '{instruction_parts[3]}'.")
+                    raise AssemblySyntaxError(source_line, f"Invalid rotation direction '{instruction_parts[3]}'.")
 
-        # # CHECK
-        # if n_instruction_parts == 6 and instruction_parts[2] == "check":
-        #     # Parse value.
-        #     value = parse_value(instruction_parts[3])
-        #     if value is None:
-        #         raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[4]}'.")
-
-        #     # Parse condition operator.
-        #     if instruction_parts[4] not in condition_operators:
-        #         raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition '{instruction_parts[4]}' for check.")
-        #     condition = condition_operators[instruction_parts[4]]
-        #     operation = operation_check(condition)
-
-        #     # Check 0 argument.
-        #     if instruction_parts[5] != "0":
-        #         raise AssemblySyntaxError(i_source_line, source_line, f"Invalid condition '{instruction_parts[4]} {instruction_parts[5]}' for check.")
-            
-        #     # Encode instruction.
-        #     return encode_instruction(operation, condition_register, condition, output_register, value, 0)
-        
         # Bit operation, '<r> = <value> bit <operation> <bit>'
         if n_instruction_parts == 6 and instruction_parts[3] == "bit":
             # Parse value.
             value = parse_value(instruction_parts[2])
             if value is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[2]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid value '{instruction_parts[2]}'.")
             
             # Parse bit.
             bit = parse_value(instruction_parts[5])
             if bit is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid bit '{instruction_parts[5]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid bit '{instruction_parts[5]}'.")
             
             # Parse bit operation.
             bit_operation = instruction_parts[4]
@@ -325,14 +349,14 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
                 case "toggle":
                     return encode_instruction(Operation.BIT_TOGGLE, condition_register, condition, output_register, value, bit)
                 case _:
-                    raise AssemblySyntaxError(i_source_line, source_line, f"Invalid bit operation '{bit_operation}'.")
+                    raise AssemblySyntaxError(source_line, f"Invalid bit operation '{bit_operation}'.")
 
         # Unary operators
         if n_instruction_parts == 4 and instruction_parts[2] in unary_operators:
             # Parse value.
             value = parse_value(instruction_parts[3])
             if value is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value '{instruction_parts[3]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid value '{instruction_parts[3]}'.")
             
             # Parse operation.
             operation = unary_operators[instruction_parts[2]]
@@ -345,12 +369,12 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
             # Parse value for A.
             value_a = parse_value(instruction_parts[2])
             if value_a is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value for A: '{instruction_parts[3]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid value for A: '{instruction_parts[3]}'.")
             
             # Parse value for B.
             value_b = parse_value(instruction_parts[4])
             if value_b is None:
-                raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value for A: '{instruction_parts[3]}'.")
+                raise AssemblySyntaxError(source_line, f"Invalid value for A: '{instruction_parts[3]}'.")
 
             # Parse operation.
             operation = binary_operations[instruction_parts[3]]
@@ -358,7 +382,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
             # Encode instruction.
             return encode_instruction(operation, condition_register, condition, output_register, value_a, value_b)
 
-        raise AssemblySyntaxError(i_source_line, source_line, "Invalid right hand side for assignment")
+        raise AssemblySyntaxError(source_line, "Invalid right hand side for assignment")
 
     # Memory store, '[<address>] = <value>'
     if n_instruction_parts == 3 and instruction_parts[0][0] == "[" and instruction_parts[0][-1] == "]" and instruction_parts[1] == "=":
@@ -366,12 +390,12 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         address_text = instruction_parts[0][1:-1]
         address = parse_value(address_text)
         if address is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid memory address: '{address_text}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid memory address: '{address_text}'.")
         
         # Parse value.
         value = parse_value(instruction_parts[2])
         if value is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{instruction_parts[2]}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{instruction_parts[2]}'.")
     
         # Encode instruction.
         return encode_instruction(Operation.MEMORY_STORE, condition_register, Condition.NEVER, Register.R1, address, value)
@@ -381,7 +405,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{value}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{value}'.")
 
         # Encode instruction.
         return encode_instruction(Operation.STACK_PUSH, condition_register, Condition.NEVER, Register.R1, value, 0)
@@ -391,7 +415,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{value}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{value}'.")
 
         # Encode instruction.
         return encode_instruction(Operation.STACK_CALL, condition_register, condition, Register.PC, Register.PC, value)
@@ -401,98 +425,220 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(i_source_line, source_line, f"Invalid value: '{value}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{value}'.")
 
         # Encode instruction.
         return encode_instruction(Operation.IO_WRITE, condition_register, Condition.NEVER, Register.R1, value, 0)
     
     # No instruction pattern detected, throw generic syntax exception.
-    raise AssemblySyntaxError(i_source_line, source_line, "Invalid instruction")
+    raise AssemblySyntaxError(source_line, f"Invalid instruction: '{instruction_text}'.")
 
-def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -> AssembledProgram | None:
+def _preformat_source_line(line: str) -> str:
     # Remove comments
-    code_lines = np.array([line.split('#', 1)[0].strip() for line in src_lines])
+    line = line.split('#', 1)[0]
 
-    if len(code_lines) == 0:
-        return AssembledProgram(np.zeros(PROGRAM_MEMORY_SIZE, dtype=np.uint64), src_lines, code_lines.tolist(), [], {})
+    # Strip line
+    line = line.strip()
 
-    # Remove empty lines
-    src_to_code_line = np.roll(np.cumsum(code_lines != ""), 1)
-    src_to_code_line[0] = 0
-    code_line_mapping: list[int] = np.zeros(np.max(src_to_code_line) + 1).tolist()
-    for i, line in enumerate(src_to_code_line):
-        code_line_mapping[line] = i
-    code_lines = code_lines[code_line_mapping]
-    if code_lines[-1] == '':
-        code_lines = code_lines[:-1]
+    # Simplify whitespace.
+    line = line.replace("    ", " ")
+    line = " ".join(line.split())
 
-    # Remove multiple whitespace
-    code_lines = [" ".join(line.split()).lower() for line in code_lines]
+    # Convert to lowercase.
+    line = line.lower()
 
-    instruction_lines: list[str] = []
-    instruction_mapping: list[int] = []
-    labels: dict[str, int] = {}
-    macro_symbols: dict[str, str] = default_macro_symbols
+    return line
 
-    for i_code_line, line in enumerate(code_lines):
-        i_src_line = code_line_mapping[i_code_line]
-        if line.startswith("@"):
-            label_id = line[1:]
-            if label_id in labels:
-                raise Exception(f"Trying to declare used label '{label_id}' in line {i_src_line + 1}.\nPreviously declared in line {instruction_mapping[labels[label_id]]+1-1}")
+def _prepare_instruction_lines(
+    src_lines: list[str],
+    unit: str,
+    include_directories: list[pathlib.Path],
+    include_scope: set[str] | None = None,
+) -> list[AssemblyInstruction]:
+    # Early exit if program is empty.
+    if len(src_lines) == 0:
+        return []
+    
+    # Prepare include scope.
+    if include_scope is None:
+        include_scope = set()
+    include_scope = include_scope | { unit }
+    
+    # Create the initial source mapping.
+    instruction_lines: list[AssemblyInstruction] = [ AssemblyInstruction(AssemblySourceLine(unit, line, text.strip()), _preformat_source_line(text)) for (line, text) in enumerate(src_lines) ]
 
-            labels[label_id] = len(instruction_lines)
+    # Remove empty lines.
+    i_line = 0
+    while i_line < len(instruction_lines):
+        if instruction_lines[i_line].text == "":
+            # Delete line, DON'T increment line counter.
+            del instruction_lines[i_line]
+        else:
+            # Increment line counter.
+            i_line += 1
+
+    # Handle includes.
+    i_line = 0
+    while i_line < len(instruction_lines):
+        line_text = instruction_lines[i_line].text
+        if not line_text.startswith("!include "):
+            i_line += 1
             continue
 
-        if line.startswith("!define"):
-            line_parts = line.split(" ", 2)
-            if len(line_parts) < 3:
-                raise Exception(f"Invalid define in line {i_src_line+1}")
-            symbol = line_parts[1]
-            value = line_parts[2]
-            macro_symbols[symbol] = value
+        # Include statement.
+        include_target_id = line_text[9:]
+        include_file_path: pathlib.Path | None = None
+        for include_directory in include_directories:
+            file_path = include_directory / f"{include_target_id}.mcasm"
+            if file_path.exists() and file_path.is_file():
+                include_file_path = file_path
+                break
+
+        # Raise exception if include target cannot be resolved.
+        if include_file_path is None:
+            raise AssemblyIncludeError(instruction_lines[i_line].source, include_target_id)
+        
+        # Read include file
+        try:
+            with open(include_file_path, "r") as include_file:
+                include_src_lines = include_file.readlines()
+        except Exception:
+            raise AssemblyIncludeError(instruction_lines[i_line].source, include_target_id) 
+
+        # Prepare include lines recursivly.
+        include_instruction_lines = _prepare_instruction_lines(include_src_lines, str(include_file_path), include_directories, include_scope)
+
+        # Replace include statement with included lines.
+        instruction_lines = instruction_lines[:i_line] + include_instruction_lines + instruction_lines[(i_line+1):]
+
+        # Skip included lines as they have already been processed.
+        i_line += len(include_instruction_lines)
+
+    return instruction_lines
+
+def assemble(
+    src_lines: list[str],
+    unit: str,
+    include_directories: list[pathlib.Path],
+    default_macros: dict[str, str] = {},
+    default_labels: dict[str, int] = {},
+) -> AssembledProgram | None:
+    # Early exit if program is empty.
+    if len(src_lines) == 0:
+        return AssembledProgram(np.zeros(1, dtype=np.uint64), [], [], {}, {})
+
+    # Prepare the source lines.
+    # This handles things like comments, whitespace simplifcation and lowercase transforamtion, 
+    # as well as the !include statement.
+    instruction_lines = _prepare_instruction_lines(src_lines, str(unit), include_directories)
+
+    # Preprocessor
+    # Handles labels, macros
+    labels: dict[str, AssemblyLabel] = { name : AssemblyLabel(name, location, None) for (name, location) in default_labels.items() }
+    macros: dict[str, AssemblyMacro] = { name : AssemblyMacro(name, value, None) for (name, value) in (ASSEMBLER_MACROS | default_macros).items() }
+    i_instruction = 0
+    while i_instruction < len(instruction_lines):
+        instruction = instruction_lines[i_instruction]
+        
+        # Handle labels.
+        if instruction.text.startswith("@"):
+            # Parse label.
+            label_name = instruction.text[1:]
+
+            # Check that label is unique.
+            existing_label = labels.get(label_name)
+            if existing_label is not None:
+                existing_source = existing_label.source
+                if existing_source is not None:
+                    raise AssemblyError(instruction.source, f"Trying to redefine label '{label_name}' which is already defined in line {existing_source.line} of unit '{existing_source.unit}'.")
+                else:
+                    raise AssemblyError(instruction.source, f"Trying to redefine label '{label_name}' which is already defined in the default labels.")
+
+            # Save label.
+            labels[label_name] = AssemblyLabel(label_name, i_instruction, instruction.source)
+
+            # Delete original instruction line, DON'T increment line counter.
+            del instruction_lines[i_instruction]
             continue
 
-        instruction_lines.append(line)
-        instruction_mapping.append(i_src_line)
+        # Handle macros.
+        if instruction.text.startswith("!define"):
+            # Parse macro.
+            define_parts = instruction.text.split(" ", 2)
+            if len(define_parts) < 3:
+                raise AssemblySyntaxError(instruction.source, "Invalid macro definition. Syntax is '!define <name> <value>'.")
+            macro_name = define_parts[1]
+            macro_value = " ".join(define_parts[2:])
+
+            # Check that label is unique.
+            existing_macro = macros.get(macro_name)
+            if existing_macro is not None:
+                existing_source = existing_macro.source
+                if existing_source is not None:
+                    raise AssemblyError(instruction.source, f"Trying to redefine macro '{macro_name}' which is already defined in line {existing_source.line} of unit '{existing_source.unit}'.")
+                else:
+                    raise AssemblyError(instruction.source, f"Trying to redefine macro '{macro_name}' which is already defined in the default macros.")
+
+            # Save macro.
+            macros[macro_name] = AssemblyMacro(macro_name, macro_value, instruction.source)
+
+            # Delete original instruction line, DON'T increment line counter.
+            del instruction_lines[i_instruction]
+            continue
+
+        # Increment line counter.
+        i_instruction += 1
+
+    # Check if the start label was used.
+    if START_LABEL in labels:
+        start_label = labels[START_LABEL]
+        i_start_instruction = start_label.location
+        if i_start_instruction != 0:
+            # Insert an artificial "jump @start" instruction as instruction 0.
+            instruction_lines.insert(0, AssemblyInstruction(AssemblySourceLine("__generated__", 0, "jump @start"), f"jump {i_start_instruction + 1}"))
+
+            # Increase all label locations, as a new instruction has been added.
+            for label in labels.values():
+                label.location += 1
+
+    # Count instructions. The number of instruction doesn't change after this point.
     n_instructions = len(instruction_lines)
 
-    for label, instruction_id in labels.items():
-        if instruction_id >= n_instructions:
-            raise Exception(f"The label {label} marks no instruction.")
+    # Early exit if program is empty.
+    if n_instructions == 0:
+        return AssembledProgram(np.zeros(1, dtype=np.uint64), src_lines, instruction_lines, labels, macros)
 
-    if len(instruction_lines) > 0:
-        # Replace used labels
-        instructions_text = "\n".join([f" {line} " for line in instruction_lines])
-        for label, instruction_id in labels.items():
-            instructions_text = instructions_text.replace(f" @{label} ", f" {instruction_id} ")
-            instructions_text = instructions_text.replace(f"[@{label}]", f"[{instruction_id}]")
+    # Apply labels and macros.
+    for instruction in instruction_lines:
+        # Add whitespace to fix word replace at line start / end
+        instruction.text = f" {instruction.text} "
 
-        # Replace symbols
-        symbols = ASSEMBLER_SYMBOLS | macro_symbols
-        for symbol, value in symbols.items():
-            instructions_text = instructions_text.replace(f" {symbol} ", f" {value} ")
-            instructions_text = instructions_text.replace(f"[{symbol}]", f"[{value}]")
-        instruction_lines = instructions_text.split("\n")
-        instruction_lines = [ line.strip() for line in instruction_lines ]
+        # Apply labels.
+        for label in labels.values():
+            instruction.text = instruction.text.replace(f" @{label.name} ", f" {label.location} ")
+            instruction.text = instruction.text.replace(f"[@{label.name}]", f"[{label.location}]")
 
+        # Apply macros.
+        for macro in macros.values():
+            instruction.text = instruction.text.replace(f" {macro.name} ", f" {macro.value} ")
+            instruction.text = instruction.text.replace(f"[{macro.name}]", f"[{macro.value}]")
+            
+        # Remove previously added whitespace.
+        instruction.text = instruction.text[1:-1]
+
+    # Assemble instructions.
     instructions = np.zeros(n_instructions, dtype=np.uint64)
-    for i_instruction, instruction_text in enumerate(instruction_lines):
-        i_src_line = instruction_mapping[i_instruction]
-        src_line = src_lines[i_src_line]
-        instruction_text = instruction_text.lower()
+    for i_instruction, instruction_line in enumerate(instruction_lines):
         try:
-            # Parse the instruction
-            instructions[i_instruction] = _parse_instruction(instruction_text, i_instruction, src_line, i_src_line)
-        except AssemblySyntaxError as syntax_error:
-            print(syntax_error, file=sys.stderr)
-            return None
-
+            # Parse the instruction.
+            instructions[i_instruction] = _parse_instruction(instruction_line)
+        except AssemblySyntaxError:
+            raise
         except Exception as exception:
-            print(f"Exception whilst parsing line {i_src_line + 1}: '{src_line}'.")
-            raise exception
+            raise Exception(f"Exception whilst parsing line {instruction_line.source.line + 1} of unit '{instruction_line.source.unit}': '{instruction_line.source.text}'.", exception)
 
-    return AssembledProgram(instructions, src_lines, instruction_lines, instruction_mapping, labels)
+    # Return generated program.
+    return AssembledProgram(instructions, src_lines, instruction_lines, labels, macros)
 
 def program_to_memory(instructions: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
     n_instructions = len(instructions)
@@ -508,7 +654,7 @@ if __name__ == "__main__":
         description="Assembler for the MCPC",
     )
     
-    argument_parser.add_argument("filename", nargs="?", default="./mcpc_16bit/programs/program.mcasm")
+    argument_parser.add_argument("filename", nargs="?", default="./mcpc_16bit/programs/stdlib_test.mcasm")
     argument_parser.add_argument("-o", "--output")
     argument_parser.add_argument("-c", "--check", action="store_true")
     argument_parser.add_argument("-m", "--mappings", action="store_true")
@@ -524,12 +670,27 @@ if __name__ == "__main__":
         output_filename = f"{input_filepath.stem}.mcbin"
     output_filepath = pathlib.Path(output_filename)
 
+    # Prepare include paths.
+    include_paths: list[pathlib.Path] = [
+        pathlib.Path.cwd() / "stdlib",
+    ]
+    include_paths = [ path for path in include_paths if path.exists() and path.is_dir() ]
+
     # Read input lines
     with open(input_filepath, "r") as input_file:
-        src_lines = [line.strip() for line in input_file.readlines()]
+        src_lines = input_file.readlines()
 
     # Assemble the program
-    program = assemble(src_lines)
+    program = None
+    try:
+        program = assemble(src_lines, str(input_filepath.absolute()), include_paths)
+    except AssemblySyntaxError as exception:
+        print(exception, file=sys.stderr)
+        exit(1)
+    except AssemblyIncludeError as exception:
+        print(exception, file=sys.stderr)
+        exit(1)
+
     if program is None:
         print("Failed to assemble program.", file=sys.stderr)
         exit(1)
@@ -543,9 +704,10 @@ if __name__ == "__main__":
     if generate_mappings:
         mappings_path = output_filepath.parent / f"{output_filepath.stem}.mcmap"
         with open(mappings_path, "w") as mappings_file:
-            for i_instruction in range(program.n_instructions):
-                i_src_line = program.src_mapping[i_instruction]
-                src_line = program.text[i_src_line]
-                mappings_file.write(f"{i_src_line + 1:5d}: {src_line}\n")
+            max_instruction_source_length = np.max([len(line.source.text) for line in program.instructions])
 
+            for instruction in program.instructions:
+                mappings_file.write(f"{instruction.source.text.ljust(max_instruction_source_length + 3)} # line {instruction.source.line + 1:5d} of unit \"{instruction.source.unit}\"\n")
+
+    # Summary output.
     print(f"Assembled {len(program.instructions)} instructions")

@@ -1,4 +1,5 @@
 import argparse
+import sys
 import warnings
 import numpy as np
 import numpy.typing as npt
@@ -212,8 +213,27 @@ if __name__ == "__main__":
         with open(input_filepath, "r") as input_file:
             src_lines = [line.strip() for line in input_file.readlines()]
 
+        # Prepare include paths.
+        include_paths: list[pathlib.Path] = [
+            pathlib.Path.cwd() / "stdlib",
+        ]
+        include_paths = [ path for path in include_paths if path.exists() and path.is_dir() ]
+
         # Assemble the program
-        assembled_program = mcasm16.assemble(src_lines)
+        assembled_program = None
+        try:
+            assembled_program = mcasm16.assemble(src_lines, str(input_filepath.absolute()), include_paths)
+        except mcasm16.AssemblySyntaxError as exception:
+            print(exception, file=sys.stderr)
+            exit(1)
+        except mcasm16.AssemblyIncludeError as exception:
+            print(exception, file=sys.stderr)
+            exit(1)
+
+        if assembled_program is None:
+            print("Failed to assemble program.", file=sys.stderr)
+            exit(1)
+
         print(f"Assembled {len(assembled_program.instructions)} instructions")
         program = assembled_program.binary
     
