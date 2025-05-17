@@ -11,7 +11,7 @@ if C1 = 0
 
 {
     C1 = read
-    exit if C1 = 0
+    exit if C1 != 0
     write 0
     write 1
 }
@@ -22,6 +22,7 @@ C1 = read
     C1 = dec C1
     repeat if C1 != 0
 }
+write R1
 
 C1 = read
 {
@@ -32,7 +33,6 @@ C1 = read
     repeat
 }
 
-@start
 R1 = read
 R2 = read
 
@@ -48,7 +48,7 @@ C1 = R1
         repeat if C2 >= 0
     }
 
-    R3 + 255
+    R3 = R3 + 255
     C1 = dec C1
-    repeat if C1 >= 0
+    repeat @outer if C1 >= 0
 }
