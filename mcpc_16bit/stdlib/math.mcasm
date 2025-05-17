@@ -24,12 +24,12 @@ R3 = 0 # SUM
 @loop_multiply
     # Pre cycle.
     C1 = R2
-    skip 2 if C1 != 0
+    if C1 = 0
         return
 
     # Add shifted B to sum
     C1 = R2 and 1
-    skip 2 if C1 = 0
+    if C1 != 0
         R3 = R3 + R1
 
     # Post cycle.
