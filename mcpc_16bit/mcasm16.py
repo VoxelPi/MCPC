@@ -48,8 +48,8 @@ class AssemblyScope():
         return label
     
     def create_macro(self, name: str, value: str, source: AssemblySourceLine | None) -> AssemblyMacro:
-        # Check that macro is unique.
-        existing_macro = self.find_macro(name)
+        # Check that macro is unique in the current scope.
+        existing_macro = self.macros.get(name)
         if existing_macro is not None:
             existing_source = existing_macro.source
             if existing_source is not None:
@@ -103,15 +103,13 @@ class AssemblyScope():
     def visible_macros(self) -> dict[str, AssemblyMacro]:
         # Add local macros.
         result = self.macros.copy()
-
-        # Add child macros.
-        for child_scope in self.children:
-            result |= child_scope.visible_macros()
         
         # Add parent macros.
         next_parent = self.parent
         while next_parent is not None:
-            result |= next_parent.macros
+            # Add macros from parent. The order here is important, the rhs takes priority.
+            # In this order this means that "higher" scopes take priority.
+            result = next_parent.macros | result
             next_parent = next_parent.parent
 
         # Return result.
@@ -128,12 +126,6 @@ class AssemblyScope():
             if name in next_parent.macros:
                 return next_parent.macros[name]
             next_parent = next_parent.parent
-
-        # Check children.
-        for child_scope in self.children:
-            macro = child_scope.find_macro(name)
-            if macro is not None:
-                return macro
 
         # Nothing found.
         return None 

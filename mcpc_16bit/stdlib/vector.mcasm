@@ -3,10 +3,14 @@
 # Length R2
 @stdlib:vector/zeroes
 {
-    C1 = R2
+    !define $base R1
+    !define $dim R2
+    !define $p R1
+
+    C1 = $dim
     {
-        [R1] = 0
-        R1 = inc R1
+        [$p] = 0
+        $p = inc $p
         C1 = dec C1
         repeat if C1 != 0
     }
@@ -18,12 +22,18 @@
 # Length R2
 @stdlib:vector/range
 {
-    C1 = R2
-    R1 = R1 + R2
+    !define $base R1
+    !define $dim R2
+    !define $p R1
+
+    write $base
+
+    C1 = $dim
+    $p = $base + $dim
     {
-        R1 = dec R1
+        $p = dec $p
         C1 = dec C1
-        [R1] = C1
+        [$p] = C1
         repeat if C1 != 0
     }
     return
