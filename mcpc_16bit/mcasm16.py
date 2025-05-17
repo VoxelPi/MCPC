@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import numpy.typing as npt
 import pathlib
@@ -408,7 +409,7 @@ def _parse_instruction(instruction_text: str, i_instruction: int, source_line: s
     # No instruction pattern detected, throw generic syntax exception.
     raise AssemblySyntaxError(i_source_line, source_line, "Invalid instruction")
 
-def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -> AssembledProgram:
+def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -> AssembledProgram | None:
     # Remove comments
     code_lines = np.array([line.split('#', 1)[0].strip() for line in src_lines])
 
@@ -483,9 +484,12 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
         try:
             # Parse the instruction
             instructions[i_instruction] = _parse_instruction(instruction_text, i_instruction, src_line, i_src_line)
+        except AssemblySyntaxError as syntax_error:
+            print(syntax_error, file=sys.stderr)
+            return None
 
         except Exception as exception:
-            print(f"Exception whilst parsing line {i_src_line}: '{src_line}'.")
+            print(f"Exception whilst parsing line {i_src_line + 1}: '{src_line}'.")
             raise exception
 
     return AssembledProgram(instructions, src_lines, instruction_lines, instruction_mapping, labels)
@@ -524,6 +528,9 @@ if __name__ == "__main__":
 
     # Assemble the program
     program = assemble(src_lines)
+    if program is None:
+        print("Failed to assemble program.", file=sys.stderr)
+        exit(1)
 
     # Write the output to a file.
     if not check_mode:
