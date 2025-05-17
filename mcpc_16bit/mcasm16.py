@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import numpy.typing as npt
 import pathlib
-from mcpc16 import Register, Condition, Operation, encode_instruction, PROGRAM_MEMORY_SIZE
+from mcpc16 import Register, Condition, Operation, encode_instruction, PROGRAM_MEMORY_SIZE, inverse_condition
 import argparse
 from dataclasses import dataclass
 
@@ -204,6 +204,11 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
         condition_register = parse_register(condition_parts[0])
         if condition_register is None:
             raise AssemblySyntaxError(source_line, f"Invalid condition source register '{condition_parts[0]}'.")
+
+        # If the condition is specified as instruction itself ('if <register> <condition> 0') then
+        # generate a skip 2 instruction with inverse condition.
+        if n_instruction_parts == 0:
+            return encode_instruction(Operation.ADD, condition_register, inverse_condition(condition), Register.PC, 2, Register.PC)
 
     else:
         condition_register = Register.R14
@@ -635,7 +640,7 @@ def assemble(
         except AssemblySyntaxError:
             raise
         except Exception as exception:
-            raise Exception(f"Exception whilst parsing line {instruction_line.source.line + 1} of unit '{instruction_line.source.unit}': '{instruction_line.source.text}'.", exception)
+            raise Exception(f"Exception whilst parsing line {instruction_line.source.line + 1} of unit '{instruction_line.source.unit}': '{instruction_line.source.text}'.") from exception
 
     # Return generated program.
     return AssembledProgram(instructions, src_lines, instruction_lines, labels, macros)

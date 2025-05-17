@@ -126,6 +126,9 @@ def is_valid_condition_source(register: Register) -> bool:
         case _:
             return False
 
+def inverse_condition(condition: Condition) -> Condition:
+    return list(Condition)[condition.value ^ 1]
+
 def condition_source(register: Register) -> int:
     match register:
         case Register.R14:
