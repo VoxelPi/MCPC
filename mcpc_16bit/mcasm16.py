@@ -465,11 +465,13 @@ def assemble(src_lines: list[str], default_macro_symbols: dict[str, str] = {}) -
         instructions_text = "\n".join([f" {line} " for line in instruction_lines])
         for label, instruction_id in labels.items():
             instructions_text = instructions_text.replace(f" @{label} ", f" {instruction_id} ")
+            instructions_text = instructions_text.replace(f"[@{label}]", f"[{instruction_id}]")
 
         # Replace symbols
         symbols = ASSEMBLER_SYMBOLS | macro_symbols
         for symbol, value in symbols.items():
             instructions_text = instructions_text.replace(f" {symbol} ", f" {value} ")
+            instructions_text = instructions_text.replace(f"[{symbol}]", f"[{value}]")
         instruction_lines = instructions_text.split("\n")
         instruction_lines = [ line.strip() for line in instruction_lines ]
 
