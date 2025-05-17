@@ -511,10 +511,12 @@ if __name__ == "__main__":
     argument_parser.add_argument("filename", nargs="?", default="./mcpc_16bit/programs/program.mcasm")
     argument_parser.add_argument("-o", "--output")
     argument_parser.add_argument("-c", "--check", action="store_true")
+    argument_parser.add_argument("-m", "--mappings", action="store_true")
     arguments = argument_parser.parse_args()
     input_filename: str = arguments.filename
     output_filename: str | None = arguments.output
-    check_mode: bool = arguments.check or False
+    check_mode: bool = arguments.check
+    generate_mappings: bool = arguments.mappings
 
     # Resolve input and output file path.
     input_filepath = pathlib.Path(input_filename)
@@ -536,5 +538,14 @@ if __name__ == "__main__":
     if not check_mode:
         with open(output_filepath, "wb") as output_file:
             output_file.write(program.binary.tobytes())
+
+    # Generate mappings if enabled.
+    if generate_mappings:
+        mappings_path = output_filepath.parent / f"{output_filepath.stem}.mcmap"
+        with open(mappings_path, "w") as mappings_file:
+            for i_instruction in range(program.n_instructions):
+                i_src_line = program.src_mapping[i_instruction]
+                src_line = program.text[i_src_line]
+                mappings_file.write(f"{i_src_line + 1:5d}: {src_line}\n")
 
     print(f"Assembled {len(program.instructions)} instructions")
