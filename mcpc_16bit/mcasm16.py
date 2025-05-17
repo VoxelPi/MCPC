@@ -506,9 +506,11 @@ if __name__ == "__main__":
     
     argument_parser.add_argument("filename", nargs="?", default="./mcpc_16bit/programs/program.mcasm")
     argument_parser.add_argument("-o", "--output")
+    argument_parser.add_argument("-c", "--check", action="store_true")
     arguments = argument_parser.parse_args()
     input_filename: str = arguments.filename
     output_filename: str | None = arguments.output
+    check_mode: bool = arguments.check or False
 
     # Resolve input and output file path.
     input_filepath = pathlib.Path(input_filename)
@@ -524,7 +526,8 @@ if __name__ == "__main__":
     program = assemble(src_lines)
 
     # Write the output to a file.
-    with open(output_filepath, "wb") as output_file:
-        output_file.write(program.binary.tobytes())
+    if not check_mode:
+        with open(output_filepath, "wb") as output_file:
+            output_file.write(program.binary.tobytes())
 
     print(f"Assembled {len(program.instructions)} instructions")
