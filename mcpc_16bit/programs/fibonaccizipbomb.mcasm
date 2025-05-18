@@ -14,9 +14,11 @@ jump @loop
 	R3 = pop
 	push R4
 	C1 = dec R3
-	skip 3 if C1 > 0
+	if C1 <= 0
+	{
 		$out = $out + R3
 		return
+	}
 	R3 = dec R3
 	push R3
 	push R3
