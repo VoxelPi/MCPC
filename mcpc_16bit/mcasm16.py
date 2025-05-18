@@ -8,6 +8,7 @@ import argparse
 from dataclasses import dataclass
 
 START_LABEL = "start"
+GLOBAL_SCOPE_NAME = "__global__"
 
 ASSEMBLER_MACROS = {
     "true": "1",
@@ -16,6 +17,157 @@ ASSEMBLER_MACROS = {
     "c2": "r15",
     "r0": "pc",
 }
+
+@dataclass
+class AssemblyScope():
+    id: int
+    name: str
+
+    parent: AssemblyScope | None # Parent scope, None for the GLOBAL SCOPE.
+    children: list[AssemblyScope]
+    
+    start: int # First instruction of the scope.
+    end: int # Last instruction (exclusive) of the scope.
+
+    labels: dict[str, AssemblyLabel]
+    macros: dict[str, AssemblyMacro]
+
+    def create_label(self, name: str, location: int, source: AssemblySourceLine | None) -> AssemblyLabel:
+        # Check that label is unique.
+        existing_label = self.find_label(name)
+        if existing_label is not None:
+            existing_source = existing_label.source
+            if existing_source is not None:
+                raise AssemblyError(instruction.source, f"Trying to redefine label '{name}' which is already defined in a visible scope in line {existing_source.line} of unit '{existing_source.unit}'.")
+            else:
+                raise AssemblyError(instruction.source, f"Trying to redefine label '{name}' which is already defined in a visible scope in the default labels.")
+
+        # Define label
+        label = AssemblyLabel(name, location, self, source)
+        self.labels[name] = label
+        return label
+    
+    def create_macro(self, name: str, value: str, source: AssemblySourceLine | None) -> AssemblyMacro:
+        # Check that macro is unique in the current scope.
+        existing_macro = self.macros.get(name)
+        if existing_macro is not None:
+            existing_source = existing_macro.source
+            if existing_source is not None:
+                raise AssemblyError(instruction.source, f"Trying to redefine macro '{name}' which is already defined in a visible scope in line {existing_source.line} of unit '{existing_source.unit}'.")
+            else:
+                raise AssemblyError(instruction.source, f"Trying to redefine macro '{name}' which is already defined in a visible scope in the default macros.")
+
+        # Define macro
+        label = AssemblyMacro(name, value, self, source)
+        self.macros[name] = label
+        return label
+
+    def visible_labels(self) -> dict[str, AssemblyLabel]:
+        # Add local labels.
+        result = self.labels.copy()
+
+        # Add child labels.
+        for child_scope in self.children:
+            result |= child_scope.visible_labels()
+        
+        # Add parent labels.
+        next_parent = self.parent
+        while next_parent is not None:
+            result |= next_parent.labels
+            next_parent = next_parent.parent
+
+        # Return result.
+        return result
+    
+    def find_label(self, name: str) -> AssemblyLabel | None:
+        # Check local labels.
+        if name in self.labels:
+            return self.labels[name]
+            
+        # Check parents.
+        next_parent = self.parent
+        while next_parent is not None:
+            if name in next_parent.labels:
+                return next_parent.labels[name]
+            next_parent = next_parent.parent
+
+        # Check children.
+        for child_scope in self.children:
+            label = child_scope.find_label(name)
+            if label is not None:
+                return label
+
+        # Nothing found.
+        return None 
+
+    def visible_macros(self) -> dict[str, AssemblyMacro]:
+        # Add local macros.
+        result = self.macros.copy()
+        
+        # Add parent macros.
+        next_parent = self.parent
+        while next_parent is not None:
+            # Add macros from parent. The order here is important, the rhs takes priority.
+            # In this order this means that "higher" scopes take priority.
+            result = next_parent.macros | result
+            next_parent = next_parent.parent
+
+        # Return result.
+        return result
+    
+    def find_macro(self, name: str) -> AssemblyMacro | None:
+        # Check local macros.
+        if name in self.macros:
+            return self.macros[name]
+            
+        # Check parents.
+        next_parent = self.parent
+        while next_parent is not None:
+            if name in next_parent.macros:
+                return next_parent.macros[name]
+            next_parent = next_parent.parent
+
+        # Nothing found.
+        return None 
+
+@dataclass
+class AssemblyLabel():
+    name: str
+    location: int
+    scope: AssemblyScope
+    source: AssemblySourceLine | None
+
+@dataclass
+class AssemblyMacro():
+    name: str
+    value: str
+    scope: AssemblyScope
+    source: AssemblySourceLine | None
+
+@dataclass
+class AssemblySourceLine():
+    unit: str
+    line: int
+    text: str
+
+@dataclass
+class AssemblyInstruction():
+    source: AssemblySourceLine
+    text: str
+    scope: AssemblyScope
+
+@dataclass
+class AssembledProgram():
+    binary: npt.NDArray[np.uint64]
+    text: list[str]
+    instructions: list[AssemblyInstruction]
+    global_scope: AssemblyScope
+
+    @property
+    def n_instructions(self) -> int:
+        return len(self.instructions)
+
+# region assembler exceptions
 
 class AssemblyError(Exception):
     source_line: AssemblySourceLine
@@ -43,6 +195,10 @@ class AssemblyIncludeError(Exception):
         super().__init__(f"Failed to resolve included unit '{target}' in line {source_line.line + 1} of unit '{source_line.unit}'.")
         self.source_line = source_line
         self.target = target
+
+# endregion assembler exceptions
+
+# region instruction parser
 
 def parse_register(text: str) -> Register | None:  
     text = text.upper()
@@ -142,44 +298,9 @@ no_args_instructions = {
     'break': Operation.BREAK,
 }
 
-@dataclass
-class AssemblyLabel():
-    name: str
-    location: int
-    source: AssemblySourceLine | None
-
-@dataclass
-class AssemblyMacro():
-    name: str
-    value: str
-    source: AssemblySourceLine | None
-
-@dataclass
-class AssemblySourceLine():
-    unit: str
-    line: int
-    text: str
-
-@dataclass
-class AssemblyInstruction():
-    source: AssemblySourceLine
-    text: str
-
-@dataclass
-class AssembledProgram():
-    binary: npt.NDArray[np.uint64]
-    text: list[str]
-    instructions: list[AssemblyInstruction]
-    labels: dict[str, AssemblyLabel]
-    macros: dict[str, AssemblyMacro]
-
-    @property
-    def n_instructions(self) -> int:
-        return len(self.instructions)
-
-def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
-    source_line = instruction_line.source
-    instruction_text = instruction_line.text
+def _parse_instruction(instruction: AssemblyInstruction) -> np.uint64:
+    source_line = instruction.source
+    instruction_text = instruction.text
     instruction_parts = instruction_text.split(" ")
     n_instruction_parts = len(instruction_parts)
 
@@ -192,9 +313,13 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
         n_instruction_parts = len(instruction_parts)
 
         # Check general condition syntax.
-        if n_condition_parts != 3 or condition_parts[2] != "0":
+        if n_condition_parts < 3 or n_condition_parts > 4 or condition_parts[2] != "0":
             raise AssemblySyntaxError(source_line, "Invalid condition syntax. Should be 'if <register> <condition> 0'.")
-        
+
+        # Check if not is present.
+        if n_condition_parts == 4 and condition_parts[3] != "not":
+            raise AssemblySyntaxError(source_line, "Invalid condition syntax. Should be 'if <register> <condition> 0 [not]'.")
+
         # Get condition.
         if condition_parts[1] not in condition_operators:
             raise AssemblySyntaxError(source_line, f"Invalid condition operator '{condition_parts[1]}'.")
@@ -205,10 +330,9 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
         if condition_register is None:
             raise AssemblySyntaxError(source_line, f"Invalid condition source register '{condition_parts[0]}'.")
 
-        # If the condition is specified as instruction itself ('if <register> <condition> 0') then
-        # generate a skip 2 instruction with inverse condition.
-        if n_instruction_parts == 0:
-            return encode_instruction(Operation.ADD, condition_register, inverse_condition(condition), Register.PC, 2, Register.PC)
+        # If "not" is specified, invert the condition.
+        if n_condition_parts == 4:
+            condition = inverse_condition(condition)
 
     else:
         condition_register = Register.R14
@@ -222,6 +346,56 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
     if instruction_text in no_args_instructions:
         operation = no_args_instructions[instruction_text]
         return encode_instruction(operation, condition_register, Condition.NEVER, Register.R1, Register.R1, Register.R1)
+
+    # REPEAT
+    if instruction_parts[0] == "repeat":
+        if n_instruction_parts > 2:
+            raise AssemblySyntaxError(source_line, "Invalid syntax for repeat. Should be 'repeat [@scope]'.")
+        
+        # Get the target scope.
+        scope = instruction.scope
+        if n_instruction_parts == 2:
+            # Parse target scope.
+            if not instruction_parts[1].startswith("_@"):
+                raise AssemblySyntaxError(source_line, f"Invalid syntax for repeat. Should be 'repeat @scope', is '{instruction_parts[1]}'.")
+            target_scope_name = instruction_parts[1][2:]
+
+            # Search scope with name.
+            while scope is not None:
+                if scope.name == target_scope_name:
+                    break
+                scope = scope.parent
+            else:
+                # This is only executed if the loop exited "naturally", which means the scope was not found.
+                raise AssemblySyntaxError(source_line, f"Unknown scope '{target_scope_name}'")
+
+        # Encode a instruction that jumps to the first instruction of the (implicitly) specified scope.
+        return encode_instruction(Operation.A, condition_register, condition, Register.PC, scope.start, 0)
+
+    # EXIT
+    if instruction_parts[0] == "exit":
+        if n_instruction_parts > 2:
+            raise AssemblySyntaxError(source_line, "Invalid syntax for exit. Should be 'exit [@scope]'.")
+        
+        # Get the target scope.
+        scope = instruction.scope
+        if n_instruction_parts == 2:
+            # Parse target scope.
+            if not instruction_parts[1].startswith("_@"):
+                raise AssemblySyntaxError(source_line, f"Invalid syntax for exit. Should be 'exit @scope', is '{instruction_parts[1]}'.")
+            target_scope_name = instruction_parts[1][2:]
+
+            # Search scope with name.
+            while scope is not None:
+                if scope.name == target_scope_name:
+                    break
+                scope = scope.parent
+            else:
+                # This is only executed if the loop exited "naturally", which means the scope was not found.
+                raise AssemblySyntaxError(source_line, f"Unknown scope '{target_scope_name}'")
+
+        # Encode a instruction that jumps to the first instruction after the (implicitly) specified scope.
+        return encode_instruction(Operation.A, condition_register, condition, Register.PC, scope.end, 0)
 
     # JUMP
     if instruction_parts[0] == 'jump':
@@ -410,7 +584,7 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(source_line, f"Invalid value: '{value}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{instruction_parts[1]}'.")
 
         # Encode instruction.
         return encode_instruction(Operation.STACK_PUSH, condition_register, Condition.NEVER, Register.R1, value, 0)
@@ -420,7 +594,7 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(source_line, f"Invalid value: '{value}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{instruction_parts[1]}'.")
 
         # Encode instruction.
         return encode_instruction(Operation.STACK_CALL, condition_register, condition, Register.PC, Register.PC, value)
@@ -430,13 +604,17 @@ def _parse_instruction(instruction_line: AssemblyInstruction) -> np.uint64:
         # Parse value.
         value = parse_value(instruction_parts[1])
         if value is None:
-            raise AssemblySyntaxError(source_line, f"Invalid value: '{value}'.")
+            raise AssemblySyntaxError(source_line, f"Invalid value: '{instruction_parts[1]}'.")
 
         # Encode instruction.
         return encode_instruction(Operation.IO_WRITE, condition_register, Condition.NEVER, Register.R1, value, 0)
     
     # No instruction pattern detected, throw generic syntax exception.
     raise AssemblySyntaxError(source_line, f"Invalid instruction: '{instruction_text}'.")
+
+# endregion instruction parser
+
+# region assembler
 
 def _preformat_source_line(line: str) -> str:
     # Remove comments
@@ -454,38 +632,39 @@ def _preformat_source_line(line: str) -> str:
 
     return line
 
-def _prepare_instruction_lines(
+def _prepare_instructions(
     src_lines: list[str],
     unit: str,
     include_directories: list[pathlib.Path],
-    include_scope: set[str] | None = None,
+    global_scope: AssemblyScope,
+    included_units: set[str] | None = None,
 ) -> list[AssemblyInstruction]:
     # Early exit if program is empty.
     if len(src_lines) == 0:
         return []
     
     # Prepare include scope.
-    if include_scope is None:
-        include_scope = set()
-    include_scope = include_scope | { unit }
+    if included_units is None:
+        included_units = set()
+    included_units = included_units | { unit }
     
     # Create the initial source mapping.
-    instruction_lines: list[AssemblyInstruction] = [ AssemblyInstruction(AssemblySourceLine(unit, line, text.strip()), _preformat_source_line(text)) for (line, text) in enumerate(src_lines) ]
+    instructions: list[AssemblyInstruction] = [ AssemblyInstruction(AssemblySourceLine(unit, line, text.strip()), _preformat_source_line(text), global_scope) for (line, text) in enumerate(src_lines) ]
 
     # Remove empty lines.
     i_line = 0
-    while i_line < len(instruction_lines):
-        if instruction_lines[i_line].text == "":
+    while i_line < len(instructions):
+        if instructions[i_line].text == "":
             # Delete line, DON'T increment line counter.
-            del instruction_lines[i_line]
+            del instructions[i_line]
         else:
             # Increment line counter.
             i_line += 1
 
     # Handle includes.
     i_line = 0
-    while i_line < len(instruction_lines):
-        line_text = instruction_lines[i_line].text
+    while i_line < len(instructions):
+        line_text = instructions[i_line].text
         if not line_text.startswith("!include "):
             i_line += 1
             continue
@@ -501,25 +680,25 @@ def _prepare_instruction_lines(
 
         # Raise exception if include target cannot be resolved.
         if include_file_path is None:
-            raise AssemblyIncludeError(instruction_lines[i_line].source, include_target_id)
+            raise AssemblyIncludeError(instructions[i_line].source, include_target_id)
         
         # Read include file
         try:
             with open(include_file_path, "r") as include_file:
                 include_src_lines = include_file.readlines()
         except Exception:
-            raise AssemblyIncludeError(instruction_lines[i_line].source, include_target_id) 
+            raise AssemblyIncludeError(instructions[i_line].source, include_target_id) 
 
         # Prepare include lines recursivly.
-        include_instruction_lines = _prepare_instruction_lines(include_src_lines, str(include_file_path), include_directories, include_scope)
+        include_instructions = _prepare_instructions(include_src_lines, str(include_file_path), include_directories, global_scope, included_units)
 
         # Replace include statement with included lines.
-        instruction_lines = instruction_lines[:i_line] + include_instruction_lines + instruction_lines[(i_line+1):]
+        instructions = instructions[:i_line] + include_instructions + instructions[(i_line+1):]
 
         # Skip included lines as they have already been processed.
-        i_line += len(include_instruction_lines)
+        i_line += len(include_instructions)
 
-    return instruction_lines
+    return instructions
 
 def assemble(
     src_lines: list[str],
@@ -528,42 +707,94 @@ def assemble(
     default_macros: dict[str, str] = {},
     default_labels: dict[str, int] = {},
 ) -> AssembledProgram | None:
+    # Define the global scope.
+    global_scope = AssemblyScope(0, GLOBAL_SCOPE_NAME, None, [], 0, -1, {}, {})
+    for (name, location) in default_labels.items():
+        global_scope.labels[name] = AssemblyLabel(name, location, global_scope, None)
+    for (name, value) in (ASSEMBLER_MACROS | default_macros).items():
+        global_scope.macros[name] = AssemblyMacro(name, value, global_scope, None)
+
     # Early exit if program is empty.
     if len(src_lines) == 0:
-        return AssembledProgram(np.zeros(1, dtype=np.uint64), [], [], {}, {})
+        return AssembledProgram(np.zeros(1, dtype=np.uint64), [], [], global_scope)
+    
+    # Insert initialization jump.
+    src_lines.insert(0, "jump @start")
 
     # Prepare the source lines.
     # This handles things like comments, whitespace simplifcation and lowercase transforamtion, 
     # as well as the !include statement.
-    instruction_lines = _prepare_instruction_lines(src_lines, str(unit), include_directories)
+    instructions = _prepare_instructions(src_lines, str(unit), include_directories, global_scope)
 
     # Preprocessor
     # Handles labels, macros
-    labels: dict[str, AssemblyLabel] = { name : AssemblyLabel(name, location, None) for (name, location) in default_labels.items() }
-    macros: dict[str, AssemblyMacro] = { name : AssemblyMacro(name, value, None) for (name, value) in (ASSEMBLER_MACROS | default_macros).items() }
+    next_scope_id: int = 1
+    current_scope = global_scope
     i_instruction = 0
-    while i_instruction < len(instruction_lines):
-        instruction = instruction_lines[i_instruction]
+    while i_instruction < len(instructions):
+        instruction = instructions[i_instruction]
+
+        # Update instruction scope.
+        instruction.scope = current_scope
         
+        # Handle scopes.
+        if instruction.text == "{":
+            # Create new child scope.
+            scope = AssemblyScope(next_scope_id, f"__unnamed_scope_{next_scope_id}__", current_scope, [], i_instruction, -1, {}, {})
+            current_scope.children.append(scope)
+            current_scope = scope
+            next_scope_id += 1
+
+            # Delete original instruction line, DON'T increment line counter.
+            del instructions[i_instruction]
+            continue
+
+        if instruction.text == "}":
+            # Check if there is a parent scope.
+            parent_scope = current_scope.parent
+            if parent_scope is None:
+                raise AssemblyError(instruction.source, "Can't close the global scope.")
+            
+            # Close scope.
+            current_scope.end = i_instruction
+            current_scope = parent_scope
+
+            # Delete original instruction line, DON'T increment line counter.
+            del instructions[i_instruction]
+            continue
+
         # Handle labels.
         if instruction.text.startswith("@"):
             # Parse label.
-            label_name = instruction.text[1:]
+            label_parts = instruction.text[1:].split(" ", maxsplit=1)
+            n_label_parts = len(label_parts)
+            create_scope = False
+            match n_label_parts:
+                case 0:
+                    raise AssemblySyntaxError(instruction.source, f"Invalid label '{instruction.text}'.")
+                case 1:
+                    label_name = label_parts[0]
+                case 2:
+                    label_name = label_parts[0]
+                    if label_parts[1] != "{":
+                        raise AssemblySyntaxError(instruction.source, f"Invalid label '{instruction.text}'.")
+                    create_scope = True
+                case _:
+                    raise AssemblySyntaxError(instruction.source, f"Invalid label '{instruction.text}'.")
+                
+            # Create label.
+            label = current_scope.create_label(label_name, i_instruction, instruction.source)
 
-            # Check that label is unique.
-            existing_label = labels.get(label_name)
-            if existing_label is not None:
-                existing_source = existing_label.source
-                if existing_source is not None:
-                    raise AssemblyError(instruction.source, f"Trying to redefine label '{label_name}' which is already defined in line {existing_source.line} of unit '{existing_source.unit}'.")
-                else:
-                    raise AssemblyError(instruction.source, f"Trying to redefine label '{label_name}' which is already defined in the default labels.")
-
-            # Save label.
-            labels[label_name] = AssemblyLabel(label_name, i_instruction, instruction.source)
+            # Create scope if specified.
+            if create_scope:
+                # Create new child scope.
+                scope = AssemblyScope(next_scope_id, label.name, current_scope, [], i_instruction, -1, {}, {})
+                current_scope.children.append(scope)
+                current_scope = scope
+                next_scope_id += 1
 
             # Delete original instruction line, DON'T increment line counter.
-            del instruction_lines[i_instruction]
+            del instructions[i_instruction]
             continue
 
         # Handle macros.
@@ -575,75 +806,140 @@ def assemble(
             macro_name = define_parts[1]
             macro_value = " ".join(define_parts[2:])
 
-            # Check that label is unique.
-            existing_macro = macros.get(macro_name)
-            if existing_macro is not None:
-                existing_source = existing_macro.source
-                if existing_source is not None:
-                    raise AssemblyError(instruction.source, f"Trying to redefine macro '{macro_name}' which is already defined in line {existing_source.line} of unit '{existing_source.unit}'.")
-                else:
-                    raise AssemblyError(instruction.source, f"Trying to redefine macro '{macro_name}' which is already defined in the default macros.")
-
-            # Save macro.
-            macros[macro_name] = AssemblyMacro(macro_name, macro_value, instruction.source)
+            # Create macro.
+            current_scope.create_macro(macro_name, macro_value, instruction.source)
 
             # Delete original instruction line, DON'T increment line counter.
-            del instruction_lines[i_instruction]
+            del instructions[i_instruction]
             continue
 
         # Increment line counter.
         i_instruction += 1
 
-    # Check if the start label was used.
-    if START_LABEL in labels:
-        start_label = labels[START_LABEL]
-        i_start_instruction = start_label.location
-        if i_start_instruction != 0:
-            # Insert an artificial "jump @start" instruction as instruction 0.
-            instruction_lines.insert(0, AssemblyInstruction(AssemblySourceLine("__generated__", 0, "jump @start"), f"jump {i_start_instruction + 1}"))
-
-            # Increase all label locations, as a new instruction has been added.
-            for label in labels.values():
-                label.location += 1
+    # Make sure that the start label is defined.
+    if global_scope.find_label(START_LABEL) is None:
+        # If the start label has not been defined in the source code, define it here at instruction 1.
+        # Instruction 0 must be skipped, as this is the initial jump.
+        global_scope.create_label(START_LABEL, 1, None)
 
     # Count instructions. The number of instruction doesn't change after this point.
-    n_instructions = len(instruction_lines)
-
-    # Early exit if program is empty.
-    if n_instructions == 0:
-        return AssembledProgram(np.zeros(1, dtype=np.uint64), src_lines, instruction_lines, labels, macros)
+    n_instructions = len(instructions)
 
     # Apply labels and macros.
-    for instruction in instruction_lines:
+    for instruction in instructions:
+        # Hack to fix labels in repeat and exit statements, as they would otherwise be replaced in the next step.
+        # The scope can't be identified by the instruction id, therefore we must disable replacing the label here.
+        if instruction.text.startswith("repeat @"):
+            instruction.text = f"repeat _@{instruction.text[8:]}"
+        elif instruction.text.startswith("exit @"):
+            instruction.text = f"exit _@{instruction.text[6:]}"
+
         # Add whitespace to fix word replace at line start / end
         instruction.text = f" {instruction.text} "
 
         # Apply labels.
-        for label in labels.values():
+        for label in instruction.scope.visible_labels().values():
             instruction.text = instruction.text.replace(f" @{label.name} ", f" {label.location} ")
             instruction.text = instruction.text.replace(f"[@{label.name}]", f"[{label.location}]")
 
+        # Check for unresolved labels.
+        if " @" in instruction.text:
+            i_label_start = instruction.text.index(" @") + 1
+            if " " in instruction.text[i_label_start:]:
+                i_label_end = instruction.text[i_label_start:].index(" ")
+                label_id = instruction.text[i_label_start:(i_label_end + i_label_start)]
+            else:
+                label_id = instruction.text[i_label_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve label '{label_id}'.")
+
+        if "[@" in instruction.text:
+            i_label_start = instruction.text.index("[@") + 1
+            if " " in instruction.text[i_label_start:]:
+                i_label_end = instruction.text[i_label_start:].index(" ")
+                label_id = instruction.text[i_label_start:(i_label_end + i_label_start)]
+            else:
+                label_id = instruction.text[i_label_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve label '{label_id}'.")
+
         # Apply macros.
-        for macro in macros.values():
+        for macro in instruction.scope.visible_macros().values():
             instruction.text = instruction.text.replace(f" {macro.name} ", f" {macro.value} ")
             instruction.text = instruction.text.replace(f"[{macro.name}]", f"[{macro.value}]")
+
+        # Check for unresolved macros.
+        if " $" in instruction.text:
+            i_macro_start = instruction.text.index(" $") + 1
+            if " " in instruction.text[i_macro_start:]:
+                i_macro_end = instruction.text[i_macro_start:].index(" ")
+                macro_id = instruction.text[i_macro_start:(i_macro_end + i_macro_start)]
+            else:
+                macro_id = instruction.text[i_macro_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve macro '{macro_id}'.")
+        
+        if "[$" in instruction.text:
+            i_macro_start = instruction.text.index("[$") + 1
+            if "]" in instruction.text[i_macro_start:]:
+                i_macro_end = instruction.text[i_macro_start:].index(" ")
+                macro_id = instruction.text[i_macro_start:(i_macro_end + i_macro_start)]
+            else:
+                macro_id = instruction.text[i_macro_start]
+            raise AssemblyError(instruction.source, f"Unable to resolve macro '{macro_id}'.")
             
         # Remove previously added whitespace.
         instruction.text = instruction.text[1:-1]
 
+    # Convert every standalone if condition that is followed by a new scope to a condition skip, that skips that scope.
+    # Note that the condition must be inverted for that.
+    for (i_instruction, instruction) in enumerate(instructions):
+        instruction = instructions[i_instruction]
+        # Check if instruction is a standalone if condition.
+        if not instruction.text.startswith("if"):
+            continue
+
+        # Check that condition has a target scope.
+        if i_instruction == n_instructions - 1:
+            raise AssemblySyntaxError(instruction.source, "Condition without target scope")
+
+        next_instruction = instructions[i_instruction + 1]
+        if next_instruction.scope.id == instruction.scope.id:
+            # Next instrution is in the same scope, skip only one instruction (+1 to skip the condition itself).
+            # The condition is inverted by appending a "not".
+            instruction.text = f"skip 2 {instruction.text} not"
+            continue
+
+        # Find the scope that should be skipped.
+        # This would be the scope, whoes parent scope is the scope of the if.
+        scope = next_instruction.scope
+        while scope is not None:
+            if scope.parent is not None and scope.parent.id == instruction.scope.id:
+                break
+            scope = scope.parent
+        else:
+            # This is only executed if the loop exited "naturally", which means the scope was not found.
+            raise AssemblySyntaxError(instruction.source, "Standalone condition must be placed before a scope")
+        
+        # Skip the length of the following scope (+1 to skip the condition iftself).
+        # The condition is inverted by appending a "not".
+        instruction.text = f"skip {scope.end - scope.start + 1} {instruction.text} not"
+        continue
+
     # Assemble instructions.
-    instructions = np.zeros(n_instructions, dtype=np.uint64)
-    for i_instruction, instruction_line in enumerate(instruction_lines):
+    encoded_instructions = np.zeros(n_instructions, dtype=np.uint64)
+    for i_instruction, instruction in enumerate(instructions):
         try:
             # Parse the instruction.
-            instructions[i_instruction] = _parse_instruction(instruction_line)
+            encoded_instructions[i_instruction] = _parse_instruction(instruction)
         except AssemblySyntaxError:
             raise
         except Exception as exception:
-            raise Exception(f"Exception whilst parsing line {instruction_line.source.line + 1} of unit '{instruction_line.source.unit}': '{instruction_line.source.text}'.") from exception
+            raise Exception(f"Exception whilst parsing line {instruction.source.line + 1} of unit '{instruction.source.unit}': '{instruction.source.text}'.") from exception
 
     # Return generated program.
-    return AssembledProgram(instructions, src_lines, instruction_lines, labels, macros)
+    return AssembledProgram(encoded_instructions, src_lines, instructions, global_scope)
+
+# endregion assembler
+
+# region application
 
 def program_to_memory(instructions: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
     n_instructions = len(instructions)
@@ -689,6 +985,9 @@ if __name__ == "__main__":
     program = None
     try:
         program = assemble(src_lines, str(input_filepath.absolute()), include_paths)
+    except AssemblyError as exception:
+        print(exception, file=sys.stderr)
+        exit(1)
     except AssemblySyntaxError as exception:
         print(exception, file=sys.stderr)
         exit(1)
@@ -716,3 +1015,5 @@ if __name__ == "__main__":
 
     # Summary output.
     print(f"Assembled {len(program.instructions)} instructions")
+
+# endregion application

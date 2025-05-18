@@ -223,6 +223,9 @@ if __name__ == "__main__":
         assembled_program = None
         try:
             assembled_program = mcasm16.assemble(src_lines, str(input_filepath.absolute()), include_paths)
+        except mcasm16.AssemblyError as exception:
+            print(exception, file=sys.stderr)
+            exit(1)
         except mcasm16.AssemblySyntaxError as exception:
             print(exception, file=sys.stderr)
             exit(1)
